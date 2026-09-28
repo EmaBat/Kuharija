@@ -14,7 +14,7 @@
     "build": "tsc",
     "watch": "tsc --watch",
     "serve": "serve -l 3000 .",
-    "dev": "concurrently \"npm:watch\" \"npm:serve\"",
+    "dev": "vite",
     "updates": "ncu",
     "update": "ncu --interactive"
   },
@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "gl-matrix": "^3.4.4",
-    "serve": "^14.2.6"
+    "serve": "^14.2.6",
+    "vite": "^8.3.0"
   }
 }
