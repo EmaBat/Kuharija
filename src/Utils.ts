@@ -6,7 +6,8 @@ import { ColorMaterial } from "./data/Material.ts";
 import { Entity } from "./Entity.ts";
 import { Camera } from "./components/Camera.ts";
 import { Scene } from "./Scene.ts";
-import { ProceduralAnimation, ProceduralAnimationChannel } from "./components/Animation.ts";
+import { ProceduralAnimation, ProceduralAnimationChannel } from "./components/ProceduralAnimation.ts";
+import { KeyframeAnimation, KeyframeAnimationChannel, KeyframeInterpolation, KeyframeTarget, type Keyframe } from "./components/KeyframeAnimation.ts";
 
 export type ComponentConstructor<T extends Component = Component> = new (...args: any[]) => T;
 
@@ -48,8 +49,8 @@ export function sampleScene() {
     // Objects 
 
     const cube = createCube();
-    const animationChannel = new ProceduralAnimationChannel(
-        (entity, dt, passedTime) => {
+    /* const animationChannel = new ProceduralAnimationChannel(
+        (entity, dt, _passedTime) => {
             const transform = entity.getComponent(Transform);
             if (!transform) {
                 return;
@@ -62,7 +63,27 @@ export function sampleScene() {
     );
     const animation = new ProceduralAnimation([animationChannel], cube);
     cube.addComponent(animation);
-    animation.playAll();
+    animation.playAll(); */
+    const keyframeChannel = new KeyframeAnimationChannel(
+        KeyframeInterpolation.Linear,
+        KeyframeTarget.Translation,
+        [
+            { time: 0.0, value: [0, 0, 0] },
+            { time: 5.0, value: [1, 0, 0] },
+            { time: 10.0, value: [-1, 0, 0] }
+        ]
+    );
+    const keyframeChannel2 = new KeyframeAnimationChannel(
+        KeyframeInterpolation.Linear,
+        KeyframeTarget.Rotation,
+        [
+            { time: 0.0, value: [0, 0, 0, 1] },
+            { time: 3.0, value: [ 0.5, 0.5, 0.5, 0.5 ] },
+            { time: 6.0, value: [ 0, 0, 1, 0 ] },
+        ]
+    );
+    const keyframeAnimation = new KeyframeAnimation([keyframeChannel, keyframeChannel2], true, false, cube);
+    cube.addComponent(keyframeAnimation);
     
     // Camera
 
