@@ -8,7 +8,6 @@ struct VertexInput {
 struct VertexOutput {
    @builtin(position) position: vec4f, 
    @location(0) uv: vec2f,
-   @location(1) debug: vec4f,
 }
 
 struct Camera {
@@ -33,12 +32,11 @@ fn vertex(input:VertexInput) -> VertexOutput {
     var output: VertexOutput;
     output.position = position;
     output.uv = input.uv;
-    output.debug = camera.projection[3];
     return output;
 }
 
 @fragment
 fn fragment(input: VertexOutput) -> @location(0) vec4f {
     //return textureSample(baseTexture, textureSampler, input.uv);
-    return vec4f(input.uv, 0.0, 1.0);
+    return color;
 }

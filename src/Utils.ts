@@ -1,4 +1,4 @@
-import { mat4, quat, vec3 } from "gl-matrix";
+import { mat4, quat, vec3, vec4 } from "gl-matrix";
 import type { Component } from "./Component.ts";
 import { Mesh } from "./components/Mesh.ts";
 import { Transform, TransformType } from "./components/Transform.ts";
@@ -33,6 +33,7 @@ export function createCube() {
     ]);
 
     const material = new ColorMaterial();
+    material.baseColor = vec4.fromValues(0.5, 1, 0, 1);
 
     const cube = new Entity();
     const mesh = new Mesh(vertices, indices, material);
@@ -53,12 +54,15 @@ export function sampleScene() {
             if (!transform) {
                 return;
             }
+            transform.rotation = quat.rotateX(transform.rotation, transform.rotation, dt);
+            transform.rotation = quat.rotateY(transform.rotation, transform.rotation, dt);
         },
         10,
         true,
     );
     const animation = new ProceduralAnimation([animationChannel], cube);
     cube.addComponent(animation);
+    animation.playAll();
     
     // Camera
 
