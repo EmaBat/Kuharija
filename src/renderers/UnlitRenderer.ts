@@ -174,7 +174,11 @@ export class UnlitRenderer {
             pass.setBindGroup(1, modelBindGroup);
             pass.setBindGroup(2, materialBindGroup);
             pass.setVertexBuffer(0, vertexBuffer);
-            pass.setIndexBuffer(indexBuffer, 'uint32');
+            if (mesh.indices instanceof Uint16Array) {
+                pass.setIndexBuffer(indexBuffer, 'uint16');
+            } else {
+                pass.setIndexBuffer(indexBuffer, 'uint32');
+            }
             pass.drawIndexed(mesh.indices.length);
         }
     }

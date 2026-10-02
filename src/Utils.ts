@@ -49,21 +49,6 @@ export function sampleScene() {
     // Objects 
 
     const cube = createCube();
-    /* const animationChannel = new ProceduralAnimationChannel(
-        (entity, dt, _passedTime) => {
-            const transform = entity.getComponent(Transform);
-            if (!transform) {
-                return;
-            }
-            transform.rotation = quat.rotateX(transform.rotation, transform.rotation, dt);
-            transform.rotation = quat.rotateY(transform.rotation, transform.rotation, dt);
-        },
-        10,
-        true,
-    );
-    const animation = new ProceduralAnimation([animationChannel], cube);
-    cube.addComponent(animation);
-    animation.playAll(); */
     const keyframeChannel = new KeyframeAnimationChannel(
         KeyframeInterpolation.Linear,
         KeyframeTarget.Translation,

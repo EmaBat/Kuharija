@@ -6,11 +6,19 @@ import { computeTransforms } from "./systems/TransformSystem.ts";
 import { sampleScene } from "./Utils.ts";
 import { animate } from "./systems/AnimationSystem.ts";
 import { createBuffers } from "./systems/BufferInitSystem.ts";
+import { GLTFParser } from "./parsers/GLTFParser.ts";
 
 
 // ------ Create sample scene ------ //
 
-const scene = sampleScene();
+//const scene = sampleScene();
+const gltfParser = new GLTFParser();
+let gltfContent = await fetch("data/demo_scene.gltf").then((r) => r.text());
+gltfParser.setJson(gltfContent, 'data/');
+const scene = await gltfParser.parseScene(0);
+if (!scene) {
+    throw Error("Could not get GLTF scene!");
+}
 
 // ------ Initalize GPU specific stuff ------ //
 
@@ -49,6 +57,10 @@ await prepareRendering(renderState, scene);
 
 let lastTime = performance.now();
 function update(timestamp: number) {
+    if (!scene) {
+        return;
+    }
+
     const dt = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
 

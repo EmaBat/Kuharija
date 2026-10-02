@@ -3,6 +3,7 @@ import type { ComponentConstructor } from "./Utils.ts";
 
 export class Entity {
     parent: Entity | null = null;
+    name: string | null = null;
     private components = new Map<ComponentConstructor<any>, any>();
 
     addComponent<T extends Component>(component: T) {
