@@ -6,6 +6,7 @@ import type { RenderState } from "../RenderState.ts";
 import type { Scene } from "../Scene.ts";
 import { Mesh } from "../components/Mesh.ts";
 import { ColorMaterial, Material } from "../data/Material.ts";
+import { writeCameraBuffer, writeMaterialBuffer, writeMeshBuffers, writeTransformBuffer } from "./BufferUpdateSystem.ts";
 
 function createCameraBuffers(state: RenderState, cameraEntity: Entity) {
     const camera = cameraEntity.getComponent(Camera);
@@ -66,5 +67,12 @@ export function createBuffers(state: RenderState, scene: Scene) {
         createCameraBuffers(state, entity);
         createTransformBuffers(state, entity);
         createMeshBuffer(state, entity);
+    }
+
+    for (const entity of scene.entities) {
+        writeMeshBuffers(state, entity);
+        writeMaterialBuffer(state, entity);
+        writeCameraBuffer(state, entity);
+        writeTransformBuffer(state, entity);
     }
 }

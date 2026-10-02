@@ -38,14 +38,6 @@ const renderState = new RenderState(device, canvas);
 
 createBuffers(renderState, scene);
 
-// TODO: This is bad, move to createBuffers
-for (const entity of scene.entities) {
-    writeMeshBuffers(renderState, entity);
-    writeMaterialBuffer(renderState, entity);
-    writeCameraBuffer(renderState, entity);
-    writeTransformBuffer(renderState, entity);
-}
-
 
 // ------ Prepare pipelines ------ //
 

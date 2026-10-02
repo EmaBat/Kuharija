@@ -5,9 +5,6 @@ import type { Scene } from "../Scene.ts";
 
 
 export async function prepareRendering(state: RenderState, scene: Scene) {
-    console.log("Preparing textures...");
-    const sceneDepthTexture = state.createDepthTexture('sceneDepth');
-    
     console.log("Preparing renderers...");
     
     // Unlit renderer
@@ -15,7 +12,7 @@ export async function prepareRendering(state: RenderState, scene: Scene) {
     const unlitRenderer = new UnlitRenderer(
         scene,
         camera,
-        sceneDepthTexture.format,
+        state.sceneDepthTexture.texture.format,
         state.canvasFormat,
         state.device
     );

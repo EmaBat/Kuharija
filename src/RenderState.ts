@@ -18,7 +18,7 @@ export class RenderState {
 
     // Textures
 
-    renderTextures: Map<string, RenderTexture> = new Map();
+    sceneDepthTexture: RenderTexture;
 
     // Renderers
 
@@ -36,34 +36,20 @@ export class RenderState {
 
         this.context = context;
         this.canvasFormat = navigator.gpu.getPreferredCanvasFormat();
-
         this.context.configure({
             device: this.device,
             format: this.canvasFormat
         });
-    }
 
-    getRenderTexture(name: string) {
-        const texture = this.renderTextures.get(name);
-        if (!texture) {
-            const textureNames = [];
-            for (const textureName of this.renderTextures.keys()) {
-                textureNames.push(textureName);
-            }
-            throw Error(`Texture ${name} does not exist. Available: ${textureNames}`);
-        }
-        return texture;
-    }
+        // Init textures
 
-    createDepthTexture(name: string) {
-        const texture = this.device.createTexture({
+        const sceneDepthTexture = this.device.createTexture({
             label: 'sceneDepthTexture',
             format: 'depth24plus',
             size: [this.canvas.width, this.canvas.height],
             usage: GPUTextureUsage.RENDER_ATTACHMENT
         });
-        const view = texture.createView();
-        this.renderTextures.set(name, { texture, view });
-        return texture;
+        const sceneDepthTextureview = sceneDepthTexture.createView();
+        this.sceneDepthTexture = { texture: sceneDepthTexture, view: sceneDepthTextureview };
     }
 }

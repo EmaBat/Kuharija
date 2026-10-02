@@ -4,7 +4,7 @@ import type { Scene } from "../Scene.ts";
 
 export function render(state: RenderState, scene: Scene) {
     const canvasTexture = state.context.getCurrentTexture();
-    const depthView = state.getRenderTexture('sceneDepth').view;
+    const depthView = state.sceneDepthTexture.view;
 
     const commandEncoder = state.device.createCommandEncoder();
 
