@@ -2,7 +2,7 @@ import { mat4, quat, vec3, vec4 } from "gl-matrix";
 import type { Component } from "./Component.ts";
 import { Mesh } from "./components/Mesh.ts";
 import { Transform, TransformType } from "./components/Transform.ts";
-import { ColorMaterial } from "./data/Material.ts";
+import { BasicMaterial } from "./data/Material.ts";
 import { Entity } from "./Entity.ts";
 import { Camera } from "./components/Camera.ts";
 import { Scene } from "./Scene.ts";
@@ -32,8 +32,10 @@ export function createCube() {
         6, 2, 7,    7, 2, 3,
         1, 0, 5,    5, 0, 4,
     ]);
+    
+    
 
-    const material = new ColorMaterial();
+    const material = new BasicMaterial();
     material.baseColor = vec4.fromValues(0.5, 1, 0, 1);
 
     const cube = new Entity();

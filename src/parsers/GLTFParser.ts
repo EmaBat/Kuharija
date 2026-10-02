@@ -1,9 +1,9 @@
-import { mat4, quat, vec3 } from "gl-matrix";
+import { mat4, quat, vec3, vec4 } from "gl-matrix";
 import { Transform, TransformType } from "../components/Transform.ts";
-import { ColorMaterial, Material } from "../data/Material.ts";
+import { BasicMaterial, Material } from "../data/Material.ts";
 import { Entity } from "../Entity.js";
 import { Scene } from "../Scene.ts";
-import { AccessorComponentTypeEnum, type AccessorType, type GlTF, type MeshPrimitive, type Node } from "./GLTFData.ts";
+import { AccessorComponentTypeEnum, type AccessorType, type GlTF, type MeshPrimitive, type Node, type Texture } from "./GLTFData.ts";
 import { Camera } from "../components/Camera.js";
 import { Mesh } from "../components/Mesh.ts";
 
@@ -18,6 +18,7 @@ export class GLTFParser {
     nodes: Map<any, Entity> = new Map();
     cameras: Map<any, Camera> = new Map();
     meshes: Map<any, Mesh[]> = new Map();
+    images: Map<any, ImageBitmap> = new Map();
     accessors: Map<any, { data: Uint8Array<ArrayBuffer> | Int8Array<ArrayBuffer> | Int16Array<ArrayBuffer> | Uint16Array<ArrayBuffer> | Uint32Array<ArrayBuffer> | Float32Array<ArrayBuffer>, count: number, numComponents: number }> = new Map();
 
     constructor() {
@@ -284,9 +285,10 @@ export class GLTFParser {
             }
         }
 
+        const bitmap = await createTempTexture();
         const material = primitive.material !== undefined
-            ? this.parseMaterial(primitive.material)
-            : new ColorMaterial();
+            ? await this.parseMaterial(primitive.material)
+            : new BasicMaterial(bitmap, vec4.fromValues(1, 1, 1, 1));
 
         return new Mesh(vertices, indices, material);
     }
@@ -418,10 +420,12 @@ export class GLTFParser {
         }
     }
 
-    parseMaterial(index: number) {
+    async parseMaterial(index: number) {
+        const bitmap = await createTempTexture();
+
         if (!this.data.materials) {
             console.warn("No materials found in GLTF");
-            return new ColorMaterial();
+            return new BasicMaterial(bitmap, vec4.fromValues(1, 1, 1, 1));
         }
 
         const materialSpec = this.data.materials[index];
@@ -429,14 +433,78 @@ export class GLTFParser {
             return this.materials.get(materialSpec)!;
         }
         
-        const material = new ColorMaterial();
+        const material = new BasicMaterial(bitmap, vec4.fromValues(1, 1, 1, 1));
         const pbrSpec = materialSpec.pbrMetallicRoughness;
-        if (pbrSpec && pbrSpec.baseColorFactor) {
-            material.baseColor = pbrSpec.baseColorFactor;
+        if (pbrSpec) {
+            if (pbrSpec.baseColorFactor) {
+                material.baseColor = pbrSpec.baseColorFactor;
+            }
+            if (pbrSpec.baseColorTexture) {
+                material.baseTexture = await this.parseTexture(pbrSpec.baseColorTexture.index);
+            }
         }
 
         this.materials.set(materialSpec, material);
         return material;
+    }
+
+    async parseTexture(index: number) {
+        if (!this.data.textures || !this.data.images) {
+            return createTempTexture();
+        }
+
+        const textureSpec = this.data.textures[index];
+        const source = textureSpec.source!;
+        let image = await this.getImage(source);
+        if (!image) {
+            image = await createTempTexture();
+        }
+
+        return image;
+    }
+
+    async getImage(index: number) {
+        if (!this.data.images) {
+            return null;
+        }
+
+        const imageSpec = this.data.images[index];
+        if (this.images.has(imageSpec)) {
+            return this.images.get(imageSpec)!;
+        }
+        
+        let blob: Blob;
+        if (imageSpec.bufferView !== undefined) {
+            if (!this.data.bufferViews) {
+                console.warn("GLTF: No buffer views in the file");
+                return null;
+            }
+
+            const viewSpec = this.data.bufferViews[imageSpec.bufferView];
+            const start = viewSpec.byteOffset ?? 0;
+            const buffer = await this.getBuffer(viewSpec.buffer);
+            if (!buffer) {
+                console.warn("GLTF: Buffer missing!")
+                return null;
+            }
+            const bytes = buffer.slice(start, start + viewSpec.byteLength);
+            blob = new Blob([bytes], { type: imageSpec.mimeType });
+        } else if (imageSpec.uri !== undefined) {
+            const url = imageSpec.uri.startsWith('data:') ? imageSpec.uri : this.rootDirectory + imageSpec.uri;
+            const response = await fetch(url);
+            if (!response.ok) {
+                console.warn("GLTF: Could not load the image!");
+                return null;
+            }
+            blob = await response.blob();
+        } else {
+            console.warn("GLTF: Image does not have uri or bufferView!");
+            return null;
+        }
+
+        const bitmap = await createImageBitmap(blob, { colorSpaceConversion: 'none' });
+        this.images.set(imageSpec, bitmap);
+        return bitmap;
     }
 }
 
@@ -480,3 +548,13 @@ const COMPONENT_TYPE_MAX = {
     5125: 0,
     5126: 0
 };
+
+
+async function createTempTexture() {
+    const raw = new Uint8ClampedArray(4);
+    raw[0] = 255;
+    raw[3] = 255;
+    const texture = new ImageData(raw, 1, 1);
+    const bitmap = await createImageBitmap(texture);
+    return bitmap;
+}

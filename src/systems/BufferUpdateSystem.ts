@@ -4,7 +4,7 @@ import type { RenderState } from "../RenderState.ts";
 import type { Scene } from "../Scene.ts";
 import { Mesh } from "../components/Mesh.ts";
 import type { Entity } from "../Entity.ts";
-import { ColorMaterial } from "../data/Material.ts";
+import { BasicMaterial } from "../data/Material.ts";
 
 export function writeCameraBuffer(state: RenderState, entity: Entity) {
     const camera = entity.getComponent(Camera);
@@ -59,7 +59,7 @@ export function writeMeshBuffers(state: RenderState, entity: Entity) {
     }
 }
 
-export function writeMaterialBuffer(state: RenderState, entity: Entity) {
+export async function writeMaterialBuffer(state: RenderState, entity: Entity) {
     const mesh = entity.getComponent(Mesh);
     if (!mesh) {
         return;
@@ -71,7 +71,7 @@ export function writeMaterialBuffer(state: RenderState, entity: Entity) {
         return;
     }
 
-    if (material instanceof ColorMaterial) {
+    if (material instanceof BasicMaterial) {
         state.device.queue.writeBuffer(material.uniformBuffer, 0, material.baseColor);
     }
 }

@@ -1,8 +1,9 @@
 import { Camera } from "../components/Camera.ts";
 import { Mesh } from "../components/Mesh.ts";
 import { Transform } from "../components/Transform.ts";
-import { ColorMaterial, type Material } from "../data/Material.ts";
+import { BasicMaterial, type Material } from "../data/Material.ts";
 import type { Entity } from "../Entity.ts";
+import type { RenderState } from "../RenderState.ts";
 import type { Scene } from "../Scene.ts";
 import shaderCode from "../shaders/Unlit.wgsl?raw";
 
@@ -19,11 +20,11 @@ export class UnlitRenderer {
         camera: Entity,
         depthTextureFormat: GPUTextureFormat,
         outputTextureFormat: GPUTextureFormat,
-        device: GPUDevice
+        renderState: RenderState
     ) {
         // Bind Group Layouts
 
-        const cameraBindGroupLayout = device.createBindGroupLayout({
+        const cameraBindGroupLayout = renderState.device.createBindGroupLayout({
             label: 'UnlitCameraLayout',
             entries: [{
                 binding: 0,  // View + Projection matrix
@@ -32,7 +33,7 @@ export class UnlitRenderer {
             }]
         });
 
-        const modelBindGroupLayout = device.createBindGroupLayout({
+        const modelBindGroupLayout = renderState.device.createBindGroupLayout({
             label: 'UnlitModelLayout',
             entries: [{
                 binding: 0, // Model matrix
@@ -41,20 +42,36 @@ export class UnlitRenderer {
             }]
         });
 
-        const materialBindGroupLayout = device.createBindGroupLayout({
+        const materialBindGroupLayout = renderState.device.createBindGroupLayout({
             label: 'UnlitMaterialLayout',
             entries: [
                 {
                     binding: 0,  // Material uniforms
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: 'uniform' }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {
+                        sampleType: 'unfilterable-float',
+                        viewDimension: '2d',
+                        multisampled: false
+                    }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: {
+                        type: 'non-filtering'
+                    }
                 }
             ]
         });
 
         // Pipeline
 
-        const pipelineLayout = device.createPipelineLayout({
+        const pipelineLayout = renderState.device.createPipelineLayout({
             bindGroupLayouts: [
                 cameraBindGroupLayout,
                 modelBindGroupLayout,
@@ -62,11 +79,11 @@ export class UnlitRenderer {
             ]
         });
 
-        const shaderModule = device.createShaderModule({
+        const shaderModule = renderState.device.createShaderModule({
             label: 'UnlitShader',
             code: shaderCode
         });
-        this.pipeline = device.createRenderPipeline({
+        this.pipeline = renderState.device.createRenderPipeline({
             label: 'UnlitPipeline',
             layout: pipelineLayout,
             vertex: {
@@ -114,7 +131,7 @@ export class UnlitRenderer {
         if (!cameraComponent || !cameraComponent.cameraBuffer) {
             throw Error("Provided entity is not a valid camera!");
         }
-        this.frameBindGroup = device.createBindGroup({
+        this.frameBindGroup = renderState.device.createBindGroup({
             layout: cameraBindGroupLayout,
             entries: [{
                 binding: 0,
@@ -126,7 +143,7 @@ export class UnlitRenderer {
             const transform = entity.getComponent(Transform);
             if (transform && transform.uniformBuffer) {
                 const modelBuffer = transform.uniformBuffer;
-                const modelBindGroup = device.createBindGroup({
+                const modelBindGroup = renderState.device.createBindGroup({
                     layout: modelBindGroupLayout,
                     entries: [{
                         binding: 0,
@@ -137,18 +154,25 @@ export class UnlitRenderer {
             }
 
             const mesh = entity.getComponent(Mesh);
-            if (mesh && mesh.material instanceof ColorMaterial) {
+            if (mesh) {
                 const materialBuffer = mesh.material.uniformBuffer;
-                if (materialBuffer) {
-                    const materialBindGroup = device.createBindGroup({
-                        layout: materialBindGroupLayout,
-                        entries: [{
-                            binding: 0,
-                            resource: materialBuffer
-                        }]
-                    });
-                    this.materialBindGroups.set(mesh.material, materialBindGroup);
+                if (!(mesh.material instanceof BasicMaterial)) {
+                    continue;
                 }
+
+                const texture = renderState.getMaterialTexture(mesh.material.baseTexture);
+                if (!texture) {
+                    throw Error("Material texture not initialized!");
+                }
+                const materialBindGroup = renderState.device.createBindGroup({
+                    layout: materialBindGroupLayout,
+                    entries: [
+                        { binding: 0, resource: materialBuffer! },
+                        { binding: 1, resource: texture.view },
+                        { binding: 2, resource: renderState.sampler }
+                    ]
+                });
+                this.materialBindGroups.set(mesh.material, materialBindGroup);
             }
         }
     }

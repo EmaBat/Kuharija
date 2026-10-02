@@ -20,6 +20,9 @@ export class RenderState {
 
     sceneDepthTexture: RenderTexture;
 
+    materialTextures: Map<ImageBitmap, RenderTexture> = new Map();
+    sampler: GPUSampler;
+
     // Renderers
 
     unlitRenderer: UnlitRenderer | null = null;
@@ -51,5 +54,49 @@ export class RenderState {
         });
         const sceneDepthTextureview = sceneDepthTexture.createView();
         this.sceneDepthTexture = { texture: sceneDepthTexture, view: sceneDepthTextureview };
+
+        this.sampler = this.device.createSampler({
+            addressModeU: 'repeat',
+            addressModeV: 'repeat'
+        });
+    }
+
+    createMaterialTexture(image: ImageBitmap) {
+        const texture = this.device.createTexture({
+            format: 'rgba8unorm',
+            size: [image.width, image.height],
+            usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        const view = texture.createView();
+        this.materialTextures.set(image, { texture, view });
+        this.device.queue.copyExternalImageToTexture(
+            { source: image },
+            { texture },
+            [image.width, image.height]
+        );
+    }
+
+    getMaterialTexture(image: ImageBitmap) {
+        return this.materialTextures.get(image);
+    }
+
+    updateRenderTextureSizes(width: number, height: number) {
+        this.sceneDepthTexture.texture.destroy();
+
+        this.sceneDepthTexture.texture = this.device.createTexture({
+            label: 'sceneDepthTexture',
+            format: 'depth24plus',
+            size: [width, height],
+            usage: GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        this.sceneDepthTexture.view = this.sceneDepthTexture.texture.createView();
+
+        this.canvas.width = width;
+        this.canvas.height = height;
+
+        this.context.configure({
+            device: this.device,
+            format: this.canvasFormat
+        });
     }
 }

@@ -5,7 +5,7 @@ import type { Entity } from "../Entity.ts";
 import type { RenderState } from "../RenderState.ts";
 import type { Scene } from "../Scene.ts";
 import { Mesh } from "../components/Mesh.ts";
-import { ColorMaterial, Material } from "../data/Material.ts";
+import { BasicMaterial, Material } from "../data/Material.ts";
 import { writeCameraBuffer, writeMaterialBuffer, writeMeshBuffers, writeTransformBuffer } from "./BufferUpdateSystem.ts";
 
 function createCameraBuffers(state: RenderState, cameraEntity: Entity) {
@@ -54,7 +54,7 @@ function createMeshBuffer(state: RenderState, entity: Entity) {
 }
 
 function createMateralBuffer(state: RenderState, material: Material) {
-    if (material instanceof ColorMaterial) {
+    if (material instanceof BasicMaterial) {
         material.uniformBuffer = state.device.createBuffer({
             size: 4 * 4,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM

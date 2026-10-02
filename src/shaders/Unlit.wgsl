@@ -22,8 +22,8 @@ struct Model {
 @group(0) @binding(0) var<uniform> camera: Camera;
 @group(1) @binding(0) var<uniform> model: Model;
 @group(2) @binding(0) var<uniform> color: vec4f;
-//@group(2) @binding(0) var textureSampler: sampler;
-//@group(2) @binding(1) var baseTexture: texture_2d<f32>;
+@group(2) @binding(1) var baseTexture: texture_2d<f32>;
+@group(2) @binding(2) var textureSampler: sampler;
 
 @vertex
 fn vertex(input:VertexInput) -> VertexOutput {
@@ -37,6 +37,6 @@ fn vertex(input:VertexInput) -> VertexOutput {
 
 @fragment
 fn fragment(input: VertexOutput) -> @location(0) vec4f {
-    //return textureSample(baseTexture, textureSampler, input.uv);
-    return color;
+    return textureSample(baseTexture, textureSampler, input.uv);
+    //return color;
 }
