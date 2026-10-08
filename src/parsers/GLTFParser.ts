@@ -3,9 +3,10 @@ import { Transform, TransformType } from "../components/Transform.ts";
 import { BasicMaterial, Material } from "../data/Material.ts";
 import { Entity } from "../Entity.js";
 import { Scene } from "../Scene.ts";
-import { AccessorComponentTypeEnum, type AccessorType, type GlTF, type MeshPrimitive, type Node, type Texture } from "./GLTFData.ts";
+import { AccessorComponentTypeEnum, type AccessorType, type Animation, type AnimationChannel, type GlTF, type MeshPrimitive, type Node, type Texture } from "./GLTFData.ts";
 import { Camera } from "../components/Camera.js";
 import { Mesh } from "../components/Mesh.ts";
+import { KeyframeAnimation, KeyframeAnimationChannel, KeyframeInterpolation, KeyframeTarget, type Keyframe } from "../components/KeyframeAnimation.ts";
 
 
 export class GLTFParser {
@@ -19,6 +20,7 @@ export class GLTFParser {
     cameras: Map<any, Camera> = new Map();
     meshes: Map<any, Mesh[]> = new Map();
     images: Map<any, ImageBitmap> = new Map();
+    animationChannels: Map<any, AnimationChannel> = new Map();
     accessors: Map<any, { data: Uint8Array<ArrayBuffer> | Int8Array<ArrayBuffer> | Int16Array<ArrayBuffer> | Uint16Array<ArrayBuffer> | Uint32Array<ArrayBuffer> | Float32Array<ArrayBuffer>, count: number, numComponents: number }> = new Map();
 
     constructor() {
@@ -88,10 +90,18 @@ export class GLTFParser {
         
         const scene = new Scene();
         for (const nodeIndex of nodes) {
-            const entity = await this.parseNode(nodeIndex);
-            if (entity) {
-                scene.addEntity(entity);
-            }
+            await this.parseNode(nodeIndex);
+        }
+        for (const entity of this.nodes.values()) {
+            scene.addEntity(entity);
+        }
+
+        const animationMap = await this.parseAnimations();
+        for (const [entity, animationChannels] of animationMap) {
+            const animation = new KeyframeAnimation(
+                animationChannels, true, false, entity
+            );
+            entity.addComponent(animation);
         }
 
         return scene;
@@ -506,6 +516,79 @@ export class GLTFParser {
         this.images.set(imageSpec, bitmap);
         return bitmap;
     }
+
+    async parseAnimations() {
+        const entityAnimationChannelsMap: Map<Entity, KeyframeAnimationChannel[]> = new Map();
+        if (!this.data.animations) {
+            return new Map<Entity, KeyframeAnimationChannel[]>();
+        }
+        for (const animation of this.data.animations) {
+            await this.parseAnimation(animation, entityAnimationChannelsMap);
+        }
+        return entityAnimationChannelsMap;
+    }
+
+    async parseAnimation(animation: Animation, entityAnimationChannelsMap: Map<Entity, KeyframeAnimationChannel[]>) {
+        const channels = animation.channels;
+        const samplers = animation.samplers;
+
+        for (const channel of channels) {
+            const target = channel.target;
+            const sampler = samplers[channel.sampler];
+
+            if (target.node === undefined) {
+                continue;
+            }
+
+            const entity = await this.parseNode(target.node);
+            if (!entity) {
+                continue;
+            }
+
+            const targetPath = ANIMATION_PATH[target.path];
+            if (targetPath === null) {
+                console.warn(`GLTF: Animation target ${target.path} not supported!`);
+                continue;
+            }
+
+            const input = await this.parseAccessor(sampler.input);
+            const output = await this.parseAccessor(sampler.output);
+            const interpolation = ANIMATION_INTERPOLATION[sampler.interpolation ?? 'LINEAR'];
+
+            if (!input || !output) {
+                continue;
+            }
+
+            // TODO: Handle spline interpolation!
+            const keyframes: Keyframe[] = [];
+            for (let i = 0; i < input.count; i++) {
+                const timestamp = input.data[i];
+
+                let index = output.numComponents * i;
+                let value: vec3 | quat;
+                if (targetPath === KeyframeTarget.Translation || targetPath === KeyframeTarget.Scale) {
+                    value = vec3.fromValues(output.data[index], output.data[index + 1], output.data[index + 2]);
+                } else {
+                    value = quat.fromValues(output.data[index], output.data[index + 1], output.data[index + 2], output.data[index + 3]);
+                }
+
+                const keyframe = { time: timestamp, value };
+                keyframes.push(keyframe);
+            }
+
+            const keyframeChannel = new KeyframeAnimationChannel(
+                interpolation,
+                targetPath,
+                keyframes
+            );
+
+            if (entityAnimationChannelsMap.has(entity)) {
+                entityAnimationChannelsMap.get(entity)?.push(keyframeChannel);
+            } else {
+                entityAnimationChannelsMap.set(entity, [keyframeChannel]);
+            }
+        }
+    }
 }
 
 
@@ -547,6 +630,21 @@ const COMPONENT_TYPE_MAX = {
     5123: 65535,
     5125: 0,
     5126: 0
+};
+
+
+const ANIMATION_PATH = {
+    'translation': KeyframeTarget.Translation,
+    'rotation': KeyframeTarget.Rotation,
+    'scale': KeyframeTarget.Scale,
+    'weights': null
+};
+
+
+const ANIMATION_INTERPOLATION = {
+    'LINEAR': KeyframeInterpolation.Linear,
+    'STEP': KeyframeInterpolation.Constant,
+    'CUBICSPLINE': KeyframeInterpolation.CubicSpline
 };
 
 

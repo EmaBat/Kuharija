@@ -128,7 +128,11 @@ export class KeyframeAnimation implements Component {
         this.endTime = 0.0;
         for (const channel of channels) {
             const keyframes = channel.keyframes;
-            this.endTime = Math.max(keyframes[keyframes.length - 1].time, this.endTime);
+            if (keyframes.length === 0) {
+                this.endTime = 0;
+            } else {
+                this.endTime = Math.max(keyframes[keyframes.length - 1].time, this.endTime);
+            }
         }
     }
 
