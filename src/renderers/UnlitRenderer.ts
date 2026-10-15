@@ -1,7 +1,8 @@
 import { Camera } from "../components/Camera.ts";
 import { Mesh } from "../components/Mesh.ts";
+import { Skin } from "../components/Skin.ts";
 import { Transform } from "../components/Transform.ts";
-import { BasicMaterial, type Material } from "../data/Material.ts";
+import { BasicMaterial, Material } from "../data/Material.ts";
 import type { Entity } from "../Entity.ts";
 import type { RenderState } from "../RenderState.ts";
 import type { Scene } from "../Scene.ts";
@@ -10,10 +11,12 @@ import shaderCode from "../shaders/Unlit.wgsl?raw";
 
 export class UnlitRenderer {
     pipeline: GPURenderPipeline;
+    skinnedPipeline: GPURenderPipeline;
 
     frameBindGroup: GPUBindGroup;
     modelBindGroups: Map<Entity, GPUBindGroup> = new Map();
     materialBindGroups: Map<Material, GPUBindGroup> = new Map();
+    skinBindGroups: Map<Entity, GPUBindGroup> = new Map();
 
     constructor(
         scene: Scene,
@@ -69,6 +72,15 @@ export class UnlitRenderer {
             ]
         });
 
+        const skinBindGroupLayout = renderState.device.createBindGroupLayout({
+            label: 'UnlitSkinLayout',
+            entries: [{
+                binding: 0, // Joint matrices
+                visibility: GPUShaderStage.VERTEX,
+                buffer: { type: 'read-only-storage' }
+            }]
+        });
+
         // Pipeline
 
         const pipelineLayout = renderState.device.createPipelineLayout({
@@ -79,40 +91,82 @@ export class UnlitRenderer {
             ]
         });
 
+        const skinnedPipelineLayout = renderState.device.createPipelineLayout({
+            bindGroupLayouts: [
+                cameraBindGroupLayout,
+                modelBindGroupLayout,
+                materialBindGroupLayout,
+                skinBindGroupLayout
+            ]
+        });
+
         const shaderModule = renderState.device.createShaderModule({
             label: 'UnlitShader',
             code: shaderCode
         });
+        const vertexLayout: GPUVertexBufferLayout = {
+            arrayStride: 44,
+            attributes: [
+                {
+                    shaderLocation: 0,  // Position
+                    format: 'float32x3',
+                    offset: 0,
+                },
+                {
+                    shaderLocation: 1,  // Normal
+                    format: 'float32x3',
+                    offset: 12,
+                },
+                {
+                    shaderLocation: 2,  // Texture coordinates
+                    format: 'float32x2',
+                    offset: 24,
+                },
+                {
+                    shaderLocation: 3,  // Tangent
+                    format: 'float32x3',
+                    offset: 32,
+                },
+            ],
+        };
         this.pipeline = renderState.device.createRenderPipeline({
             label: 'UnlitPipeline',
             layout: pipelineLayout,
             vertex: {
                 module: shaderModule,
-                buffers: [{
-                    arrayStride: 44,
-                    attributes: [
-                        {
-                            shaderLocation: 0,  // Position
-                            format: 'float32x3',
-                            offset: 0,
-                        },
-                        {
-                            shaderLocation: 1,  // Normal
-                            format: 'float32x3',
-                            offset: 12,
-                        },
-                        {
-                            shaderLocation: 2,  // Texture coordinates
-                            format: 'float32x2',
-                            offset: 24,
-                        },
-                        {
-                            shaderLocation: 3,  // Tangent
-                            format: 'float32x3',
-                            offset: 32,
-                        },
-                    ],
-                }]
+                entryPoint: 'vertex',
+                buffers: [
+                    vertexLayout
+                ]
+            },
+            fragment: {
+                module: shaderModule,
+                targets: [{ format: outputTextureFormat }]
+            },
+            depthStencil: {
+                format: depthTextureFormat,
+                depthWriteEnabled: true,
+                depthCompare: 'less'
+            }
+        });
+
+        
+        this.skinnedPipeline = renderState.device.createRenderPipeline({
+            label: 'UnlitSkinnedPipeline',
+            layout: skinnedPipelineLayout,
+            vertex: {
+                module: shaderModule,
+                entryPoint: 'vertexSkinned',
+                buffers: [
+                    vertexLayout,
+                    {
+                        arrayStride: 32,
+                        attributes: [
+                            { shaderLocation: 4, format: 'uint32x4', offset: 0 },
+                            { shaderLocation: 5, format: 'float32x4', offset: 16 },
+                        ]
+                    }
+                ]
             },
             fragment: {
                 module: shaderModule,
@@ -174,16 +228,30 @@ export class UnlitRenderer {
                 });
                 this.materialBindGroups.set(mesh.material, materialBindGroup);
             }
+
+            const skin = entity.getComponent(Skin);
+            if (skin) {
+                this.skinBindGroups.set(entity, renderState.device.createBindGroup({
+                    layout: skinBindGroupLayout,
+                    entries: [{ binding: 0, resource: skin.jointMatricesBuffer! }]
+                }));
+            }
         }
     }
 
     render(pass: GPURenderPassEncoder, scene: Scene) {
-        pass.setPipeline(this.pipeline);
         pass.setBindGroup(0, this.frameBindGroup);
         for (const entity of scene.entities) {
             const mesh = entity.getComponent(Mesh);
             if (!mesh) {
                 continue;
+            }
+
+            const skin = entity.getComponent(Skin);
+            if (!skin) {
+                pass.setPipeline(this.pipeline);
+            } else {
+                pass.setPipeline(this.skinnedPipeline);
             }
 
             const modelBindGroup = this.modelBindGroups.get(entity);
@@ -197,6 +265,13 @@ export class UnlitRenderer {
 
             pass.setBindGroup(1, modelBindGroup);
             pass.setBindGroup(2, materialBindGroup);
+            if (skin) {
+                const skinBindGroup = this.skinBindGroups.get(entity);
+                if (skinBindGroup && mesh.skinVertexBuffer) {
+                    pass.setBindGroup(3, this.skinBindGroups.get(entity));
+                    pass.setVertexBuffer(1, mesh.skinVertexBuffer);
+                }
+            }
             pass.setVertexBuffer(0, vertexBuffer);
             if (mesh.indices instanceof Uint16Array) {
                 pass.setIndexBuffer(indexBuffer, 'uint16');

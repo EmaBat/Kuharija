@@ -7,6 +7,7 @@ import { animate } from "./systems/AnimationSystem.ts";
 import { createBuffers } from "./systems/BufferInitSystem.ts";
 import { GLTFParser } from "./parsers/GLTFParser.ts";
 import { Camera } from "./components/Camera.ts";
+import { computeSkins } from "./systems/SkinningSystem.ts";
 
 
 // ------ Create sample scene ------ //
@@ -82,6 +83,7 @@ function update(timestamp: number) {
 
     animate(scene, dt);
     computeTransforms(scene);
+    computeSkins(scene);
     updateBuffers(renderState, scene);
     render(renderState, scene);
 

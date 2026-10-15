@@ -7,7 +7,7 @@ import { AccessorComponentTypeEnum, type AccessorType, type Animation, type Anim
 import { Camera } from "../components/Camera.js";
 import { Mesh } from "../components/Mesh.ts";
 import { KeyframeAnimation, KeyframeAnimationChannel, KeyframeInterpolation, KeyframeTarget, type Keyframe } from "../components/KeyframeAnimation.ts";
-
+import { Skin } from "../components/Skin.ts";
 
 export class GLTFParser {
     data: GlTF;
@@ -102,6 +102,11 @@ export class GLTFParser {
                 animationChannels, true, false, entity
             );
             entity.addComponent(animation);
+        }
+
+        const skinMap = await this.parseSkins();
+        for (const [entity, skin] of skinMap) {
+            entity.addComponent(skin);
         }
 
         return scene;
@@ -268,6 +273,14 @@ export class GLTFParser {
         const tangents = primitive.attributes['TANGENT'] !== undefined
             ? await this.parseAccessor(primitive.attributes['TANGENT'])
             : null;
+
+        const joints = primitive.attributes['JOINTS_0'] !== undefined
+            ? await this.parseAccessor(primitive.attributes['JOINTS_0'])
+            : null;
+
+        const weights = primitive.attributes['WEIGHTS_0'] !== undefined
+            ? await this.parseAccessor(primitive.attributes['WEIGHTS_0'])
+            : null;
         
         // Into a single 
         
@@ -300,7 +313,21 @@ export class GLTFParser {
             ? await this.parseMaterial(primitive.material)
             : new BasicMaterial(bitmap, vec4.fromValues(1, 1, 1, 1));
 
-        return new Mesh(vertices, indices, material);
+        let skinVertices = null;
+        if (joints && weights) {
+            skinVertices = new ArrayBuffer(vertexCount * 32); // 8 values * 4 bytes
+            const jointView = new Uint32Array(skinVertices);
+            const weightView = new Float32Array (skinVertices);
+
+            for(let i = 0; i < vertexCount; i++) {
+                for (let c = 0; c < 4; c++) {
+                    jointView[i * 8 + c] = joints.data[i * 4 + c];
+                    weightView[i * 8 + c + 4] = weights.data [i * 4 + c];
+                }
+            }
+        }
+
+        return new Mesh(vertices, indices, material, skinVertices);
     }
 
     async parseAccessor(index: number) {
@@ -446,8 +473,9 @@ export class GLTFParser {
         const material = new BasicMaterial(bitmap, vec4.fromValues(1, 1, 1, 1));
         const pbrSpec = materialSpec.pbrMetallicRoughness;
         if (pbrSpec) {
-            if (pbrSpec.baseColorFactor) {
-                material.baseColor = pbrSpec.baseColorFactor;
+            if (pbrSpec.baseColorFactor ) {
+                material.baseColor = vec4.fromValues(...pbrSpec.baseColorFactor);
+                material.baseTexture = await createTempTexture(material.baseColor);
             }
             if (pbrSpec.baseColorTexture) {
                 material.baseTexture = await this.parseTexture(pbrSpec.baseColorTexture.index);
@@ -515,6 +543,61 @@ export class GLTFParser {
         const bitmap = await createImageBitmap(blob, { colorSpaceConversion: 'none' });
         this.images.set(imageSpec, bitmap);
         return bitmap;
+    }
+
+    async parseSkins() {
+        const entitySkinMap: Map<Entity, Skin> = new Map();
+        if (!this.data.nodes || !this.data.skins) {
+            return entitySkinMap;
+        }
+        for (const node of this.data.nodes) {
+            if (node.skin === undefined) {
+                continue;
+            }
+
+            const entity = this.nodes.get(node);
+            if (!entity) {
+                continue;
+            }
+
+            const skin = await this.parseSkin(node.skin);
+            if (skin) {
+                entitySkinMap.set(entity, skin);
+            }
+        }
+        return entitySkinMap;
+    }
+
+    async parseSkin(index: number) {
+        if (!this.data.skins) {
+            return null;
+        }
+        const skinSpec = this.data.skins[index];
+
+        const joints: Entity[] = [];
+        for (const jointIndex of skinSpec.joints) {
+            const joint = await this.parseNode(jointIndex);
+            if (!joint) {
+                console.warn(`GLTF: Skin ${skinSpec.name} has missing joint ${jointIndex}, skipping...`);
+                return null;
+            }
+            joints.push(joint)
+        }
+
+        const accessor = skinSpec.inverseBindMatrices !== undefined
+            ? await this.parseAccessor(skinSpec.inverseBindMatrices)
+            : null;
+
+        const inverseBindMatrices: mat4[] = [];
+        for (let i = 0; i < joints.length; i++) {
+            if (accessor && accessor.numComponents === 16 && i < accessor.count) {
+                inverseBindMatrices.push(mat4.clone(accessor.data.subarray(i * 16, (i + 1) * 16)));
+            } else {
+                inverseBindMatrices.push(mat4.create());
+            }
+        }
+
+        return new Skin(joints, inverseBindMatrices);
     }
 
     async parseAnimations() {
@@ -648,10 +731,12 @@ const ANIMATION_INTERPOLATION = {
 };
 
 
-async function createTempTexture() {
+async function createTempTexture(color?: vec4) {
     const raw = new Uint8ClampedArray(4);
-    raw[0] = 255;
-    raw[3] = 255;
+    raw[0] = color ? color[0] * 255 : 255;
+    raw[1] = color ? color[1] * 255 : 0;
+    raw[2] = color ? color[2] * 255 : 0;
+    raw[3] = color ? color[3] * 255 : 255;
     const texture = new ImageData(raw, 1, 1);
     const bitmap = await createImageBitmap(texture);
     return bitmap;

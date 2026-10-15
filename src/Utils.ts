@@ -33,10 +33,7 @@ export function createCube() {
         1, 0, 5,    5, 0, 4,
     ]);
     
-    
-
-    const material = new BasicMaterial();
-    material.baseColor = vec4.fromValues(0.5, 1, 0, 1);
+    const material = new BasicMaterial(new ImageBitmap(), vec4.fromValues(0.5, 1, 0, 1));
 
     const cube = new Entity();
     const mesh = new Mesh(vertices, indices, material);

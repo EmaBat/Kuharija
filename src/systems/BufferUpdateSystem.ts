@@ -5,6 +5,7 @@ import type { Scene } from "../Scene.ts";
 import { Mesh } from "../components/Mesh.ts";
 import type { Entity } from "../Entity.ts";
 import { BasicMaterial } from "../data/Material.ts";
+import { Skin } from "../components/Skin.ts";
 
 export function writeCameraBuffer(state: RenderState, entity: Entity) {
     const camera = entity.getComponent(Camera);
@@ -57,6 +58,23 @@ export function writeMeshBuffers(state: RenderState, entity: Entity) {
     } else {
         console.warn("Index buffer not initialized!");
     }
+
+    if (mesh.skinVertexBuffer) {
+        state.device.queue.writeBuffer(mesh.skinVertexBuffer, 0, mesh.skinVertices);
+    }
+}
+
+export function writeSkinBuffer(state: RenderState, entity: Entity) {
+    const skin = entity.getComponent(Skin);
+    if (!skin) {
+        return;
+    }
+
+    if (skin.jointMatricesBuffer) {
+        state.device.queue.writeBuffer(skin.jointMatricesBuffer, 0, skin.jointMatrices);
+    } else {
+        console.warn("Joint matrix buffer not initialized!");
+    }
 }
 
 export async function writeMaterialBuffer(state: RenderState, entity: Entity) {
@@ -81,5 +99,6 @@ export function updateBuffers(state: RenderState, scene: Scene) {
     for (const entity of scene.entities) {
         writeCameraBuffer(state, entity);
         writeTransformBuffer(state, entity);
+        writeSkinBuffer(state, entity);
     }
 }
