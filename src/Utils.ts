@@ -1,18 +1,24 @@
-import { mat4, quat, vec3, vec4 } from "gl-matrix";
+import { vec4 } from "gl-matrix";
 import type { Component } from "./Component.ts";
 import { Mesh } from "./components/Mesh.ts";
 import { Transform, TransformType } from "./components/Transform.ts";
 import { BasicMaterial } from "./data/Material.ts";
 import { Entity } from "./Entity.ts";
-import { Camera } from "./components/Camera.ts";
-import { Scene } from "./Scene.ts";
-import { ProceduralAnimation, ProceduralAnimationChannel } from "./components/ProceduralAnimation.ts";
-import { KeyframeAnimation, KeyframeAnimationChannel, KeyframeInterpolation, KeyframeTarget, type Keyframe } from "./components/KeyframeAnimation.ts";
 
+
+
+/**
+ * This is an auxiliary type needed in some function inputs that require
+ * passing component types, e.g. Scene.getEntitiesByComponent
+ */
 export type ComponentConstructor<T extends Component = Component> = new (...args: any[]) => T;
 
 
-export function createCube() {
+/**
+ * Creates a cube entity.
+ * @returns An entity with mesh and transform
+ */
+export function createCube(): Entity {
     const vertices = new Float32Array([
         -1, -1, -1,     0, 0, 0,    0, 0,   0, 0, 0,
         -1, -1,  1,     0, 0, 1,    0, 1,   0, 0, 0,
@@ -41,52 +47,4 @@ export function createCube() {
     cube.addComponent(mesh);
     cube.addComponent(transform);
     return cube;
-}
-
-export function sampleScene() {
-    
-    // Objects 
-
-    const cube = createCube();
-    const keyframeChannel = new KeyframeAnimationChannel(
-        KeyframeInterpolation.Linear,
-        KeyframeTarget.Translation,
-        [
-            { time: 0.0, value: [0, 0, 0] },
-            { time: 5.0, value: [1, 0, 0] },
-            { time: 10.0, value: [-1, 0, 0] }
-        ]
-    );
-    const keyframeChannel2 = new KeyframeAnimationChannel(
-        KeyframeInterpolation.Linear,
-        KeyframeTarget.Rotation,
-        [
-            { time: 0.0, value: [0, 0, 0, 1] },
-            { time: 3.0, value: [ 0.5, 0.5, 0.5, 0.5 ] },
-            { time: 6.0, value: [ 0, 0, 1, 0 ] },
-        ]
-    );
-    const keyframeAnimation = new KeyframeAnimation([keyframeChannel, keyframeChannel2], true, false, cube);
-    cube.addComponent(keyframeAnimation);
-    
-    // Camera
-
-    const camera = new Entity();
-    const cameraTransform = new Transform(TransformType.LookAt);
-    cameraTransform.location = vec3.fromValues(0, 10, 0);
-    const cameraCamera = new Camera(
-        1,
-        2 / Math.PI,
-        0.1, 100.0
-    );
-    camera.addComponent(cameraTransform);
-    camera.addComponent(cameraCamera);
-    
-
-    // Combine into scene
-
-    const scene = new Scene();
-    scene.addEntity(cube);
-    scene.addEntity(camera);
-    return scene;
 }

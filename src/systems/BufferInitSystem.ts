@@ -1,4 +1,3 @@
-import { mat4 } from "gl-matrix";
 import { Camera } from "../components/Camera.ts";
 import { Transform } from "../components/Transform.ts";
 import type { Entity } from "../Entity.ts";
@@ -6,10 +5,10 @@ import type { RenderState } from "../RenderState.ts";
 import type { Scene } from "../Scene.ts";
 import { Mesh } from "../components/Mesh.ts";
 import { BasicMaterial, Material } from "../data/Material.ts";
-import { writeCameraBuffer, writeMaterialBuffer, writeMeshBuffers, writeSkinBuffer, writeTransformBuffer } from "./BufferUpdateSystem.ts";
+import { _writeCameraBuffer, _writeMaterialBuffer, _writeMeshBuffers, _writeSkinBuffer, _writeTransformBuffer } from "./BufferUpdateSystem.ts";
 import { Skin } from "../components/Skin.ts";
 
-function createCameraBuffers(state: RenderState, cameraEntity: Entity) {
+function _createCameraBuffers(state: RenderState, cameraEntity: Entity) {
     const camera = cameraEntity.getComponent(Camera);
     if (!camera) {
         return;
@@ -22,7 +21,7 @@ function createCameraBuffers(state: RenderState, cameraEntity: Entity) {
     });
 }
 
-function createSkinBuffer(state: RenderState, entity: Entity) {
+function _createSkinBuffer(state: RenderState, entity: Entity) {
     const skin = entity.getComponent(Skin);
     if (!skin) {
         return;
@@ -35,7 +34,7 @@ function createSkinBuffer(state: RenderState, entity: Entity) {
     });
 }
 
-function createTransformBuffers(state: RenderState, entity: Entity) {
+function _createTransformBuffers(state: RenderState, entity: Entity) {
     const transform = entity.getComponent(Transform);
     if (!transform) {
         return;
@@ -48,7 +47,7 @@ function createTransformBuffers(state: RenderState, entity: Entity) {
     });
 }
 
-function createMeshBuffer(state: RenderState, entity: Entity) {
+function _createMeshBuffer(state: RenderState, entity: Entity) {
     const mesh = entity.getComponent(Mesh);
     if (!mesh) {
         return;
@@ -84,19 +83,25 @@ function createMateralBuffer(state: RenderState, material: Material) {
     }
 }
 
+/**
+ * A system that creates all GPU buffers for the scene.
+ * The system also writes initial data to the buffers.
+ * @param state render state instance
+ * @param scene current scene
+ */
 export function createBuffers(state: RenderState, scene: Scene) {
     for (const entity of scene.entities) {
-        createCameraBuffers(state, entity);
-        createTransformBuffers(state, entity);
-        createMeshBuffer(state, entity);
-        createSkinBuffer(state, entity);
+        _createCameraBuffers(state, entity);
+        _createTransformBuffers(state, entity);
+        _createMeshBuffer(state, entity);
+        _createSkinBuffer(state, entity);
     }
 
     for (const entity of scene.entities) {
-        writeMeshBuffers(state, entity);
-        writeMaterialBuffer(state, entity);
-        writeCameraBuffer(state, entity);
-        writeTransformBuffer(state, entity);
-        writeSkinBuffer(state, entity);
+        _writeMeshBuffers(state, entity);
+        _writeMaterialBuffer(state, entity);
+        _writeCameraBuffer(state, entity);
+        _writeTransformBuffer(state, entity);
+        _writeSkinBuffer(state, entity);
     }
 }

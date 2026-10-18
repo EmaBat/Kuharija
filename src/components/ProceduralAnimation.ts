@@ -2,11 +2,25 @@ import type { Component } from "../Component.ts";
 import type { Entity } from "../Entity.ts";
 
 
+/**
+ * The type that defines what kind of functions
+ * are allowed as procedural animations.
+ */
 type ProceduralAnimationFunction = {
-    (entity: Entity, dt: number, passedTime: number, duration: number): void
+    (
+        entity: Entity,         // the entity to animate
+        dt: number,             // duration between previous and this frame (in seconds)
+        passedTime: number,     // current time in animation (in seconds)
+        duration: number        // overall animation duration (in seconds)
+    ): void
 };
 
 
+/**
+ * The channel of procedural animation,
+ * holding a specific animation function
+ * and other animation properties.
+ */
 export class ProceduralAnimationChannel {
     animation: ProceduralAnimationFunction;
     duration: number;
@@ -26,14 +40,25 @@ export class ProceduralAnimationChannel {
         this.isPaused = true;
     }
 
+    /**
+     * Plays/resumes the animation.
+     */
     play() {
         this.isPaused = false;
     }
 
+    /**
+     * Pauses the animation.
+     */
     pause() {
         this.isPaused = true;
     }
 
+    /**
+     * Updates the animation.
+     * @param entity The entity to animate
+     * @param dt Duration between previous and current frame (in seconds)
+     */
     update(entity: Entity, dt: number) {
         if (this.isPaused) {
             return;
@@ -53,6 +78,9 @@ export class ProceduralAnimationChannel {
 }
 
 
+/**
+ * A component for procedural animation of entities.
+ */
 export class ProceduralAnimation implements Component {
     channels: ProceduralAnimationChannel[];
     entity: Entity;

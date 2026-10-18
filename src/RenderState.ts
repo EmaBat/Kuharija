@@ -1,17 +1,23 @@
 import type { UnlitRenderer } from "./renderers/UnlitRenderer.ts";
 
 
+/**
+ * A bundle of render texture and its view, used for texture storage.
+ */
 export interface RenderTexture {
     texture: GPUTexture;
     view: GPUTextureView;
 }
 
 
+/**
+ * A structure that stores rendering data and interfaces.
+ */
 export class RenderState {
     device: GPUDevice;
 
     // Canvas
-
+    
     canvas: HTMLCanvasElement;
     context: GPUCanvasContext;
     canvasFormat: GPUTextureFormat;
@@ -19,8 +25,9 @@ export class RenderState {
     // Textures
 
     sceneDepthTexture: RenderTexture;
-
-    materialTextures: Map<ImageBitmap, RenderTexture> = new Map();
+    imageTextures: Map<ImageBitmap, RenderTexture> = new Map();
+    // NOTE: Only a single default sampler is used!
+    // You will need to modify this if you want to use a different sampler for some textures.
     sampler: GPUSampler;
 
     // Renderers
@@ -31,6 +38,8 @@ export class RenderState {
     constructor(device: GPUDevice, canvas: HTMLCanvasElement) {
         this.device = device;
         this.canvas = canvas;
+
+        // Configure context
 
         const context = this.canvas.getContext('webgpu');
         if (!context) {
@@ -44,7 +53,7 @@ export class RenderState {
             format: this.canvasFormat
         });
 
-        // Init textures
+        // Initialize textures
 
         const sceneDepthTexture = this.device.createTexture({
             label: 'sceneDepthTexture',
@@ -61,14 +70,19 @@ export class RenderState {
         });
     }
 
-    createMaterialTexture(image: ImageBitmap) {
+    /**
+     * Creates and stores a new texture from existing image.
+     * Also creates the corresponding texture view.
+     * @param image An image to store into texture
+     */
+    createImageTexture(image: ImageBitmap) {
         const texture = this.device.createTexture({
             format: 'rgba8unorm',
             size: [image.width, image.height],
             usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT
         });
         const view = texture.createView();
-        this.materialTextures.set(image, { texture, view });
+        this.imageTextures.set(image, { texture, view });
         this.device.queue.copyExternalImageToTexture(
             { source: image },
             { texture },
@@ -76,10 +90,23 @@ export class RenderState {
         );
     }
 
-    getMaterialTexture(image: ImageBitmap) {
-        return this.materialTextures.get(image);
+    /**
+     * Retrieves the GPU texture that holds the provided image.
+     * The function may return `undefined` if the texture
+     * was not yet created for the provided image.
+     * @param image An image to find the GPU texture for
+     * @returns Texture and its view, if they exist for the image (of type {@link RenderTexture})
+     */
+    getMaterialTexture(image: ImageBitmap): RenderTexture | undefined {
+        return this.imageTextures.get(image);
     }
 
+    /**
+     * Updates the canvas specific textures (e.g., canvas texture,
+     * depth texture), and reconfigures the canvas context.
+     * @param width Canvas width
+     * @param height Canvas height
+     */
     updateRenderTextureSizes(width: number, height: number) {
         this.sceneDepthTexture.texture.destroy();
 

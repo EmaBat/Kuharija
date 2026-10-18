@@ -9,10 +9,19 @@ import type { Scene } from "../Scene.ts";
 import shaderCode from "../shaders/Unlit.wgsl?raw";
 
 
+/**
+ * A simple renderer that uses an unlit shader (Unlit.wgsl)
+ * to render textured objects
+ */
 export class UnlitRenderer {
-    pipeline: GPURenderPipeline;
-    skinnedPipeline: GPURenderPipeline;
+    pipeline: GPURenderPipeline;        // for objects without skeleton
+    skinnedPipeline: GPURenderPipeline; // for objects with skeleton
 
+    // Bind groups are constructed based on the level of change
+    // during the render pass execution: frame bind group is set
+    // once per render invocation, model bind group is set once for each
+    // entity, and material bind group is set for each material
+    // (pipeline). Skin bind group binds skeleton data.
     frameBindGroup: GPUBindGroup;
     modelBindGroups: Map<Entity, GPUBindGroup> = new Map();
     materialBindGroups: Map<Material, GPUBindGroup> = new Map();
@@ -239,6 +248,11 @@ export class UnlitRenderer {
         }
     }
 
+    /**
+     * Renders the scene in the given render pass
+     * @param pass render pass to draw in
+     * @param scene the scene to render
+     */
     render(pass: GPURenderPassEncoder, scene: Scene) {
         pass.setBindGroup(0, this.frameBindGroup);
         for (const entity of scene.entities) {

@@ -1,3 +1,9 @@
+// -----------------------------------
+// This file stores all glTF definitions
+// so that the data parsed from JSON
+// contains types
+// -----------------------------------
+
 export interface GlTF {
     extensionsUsed?: string[];
     extensionsRequired?: string[];

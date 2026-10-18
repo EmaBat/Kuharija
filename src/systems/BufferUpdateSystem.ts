@@ -7,7 +7,7 @@ import type { Entity } from "../Entity.ts";
 import { BasicMaterial } from "../data/Material.ts";
 import { Skin } from "../components/Skin.ts";
 
-export function writeCameraBuffer(state: RenderState, entity: Entity) {
+export function _writeCameraBuffer(state: RenderState, entity: Entity) {
     const camera = entity.getComponent(Camera);
     const transform = entity.getComponent(Transform);
 
@@ -28,7 +28,7 @@ export function writeCameraBuffer(state: RenderState, entity: Entity) {
     }
 }
 
-export function writeTransformBuffer(state: RenderState, entity: Entity) {
+export function _writeTransformBuffer(state: RenderState, entity: Entity) {
     const transform = entity.getComponent(Transform);
     if (!transform) {
         return;
@@ -41,7 +41,7 @@ export function writeTransformBuffer(state: RenderState, entity: Entity) {
     }
 }
 
-export function writeMeshBuffers(state: RenderState, entity: Entity) {
+export function _writeMeshBuffers(state: RenderState, entity: Entity) {
     const mesh = entity.getComponent(Mesh);
     if (!mesh) {
         return;
@@ -64,7 +64,7 @@ export function writeMeshBuffers(state: RenderState, entity: Entity) {
     }
 }
 
-export function writeSkinBuffer(state: RenderState, entity: Entity) {
+export function _writeSkinBuffer(state: RenderState, entity: Entity) {
     const skin = entity.getComponent(Skin);
     if (!skin) {
         return;
@@ -77,7 +77,7 @@ export function writeSkinBuffer(state: RenderState, entity: Entity) {
     }
 }
 
-export async function writeMaterialBuffer(state: RenderState, entity: Entity) {
+export async function _writeMaterialBuffer(state: RenderState, entity: Entity) {
     const mesh = entity.getComponent(Mesh);
     if (!mesh) {
         return;
@@ -94,11 +94,19 @@ export async function writeMaterialBuffer(state: RenderState, entity: Entity) {
     }
 }
 
+/**
+ * The system that writes the data to the GPU buffers of the scene.
+ * Only camera buffers, transform buffers, and skin buffers are
+ * written by default.
+ * @param state the render state
+ * @param scene the current scene
+ */
 export function updateBuffers(state: RenderState, scene: Scene) {
-    // We only update buffers that likely change every frame
+    // We only update buffers that likely change every frame.
+    // Change if your buffer update requirements are different.
     for (const entity of scene.entities) {
-        writeCameraBuffer(state, entity);
-        writeTransformBuffer(state, entity);
-        writeSkinBuffer(state, entity);
+        _writeCameraBuffer(state, entity);
+        _writeTransformBuffer(state, entity);
+        _writeSkinBuffer(state, entity);
     }
 }

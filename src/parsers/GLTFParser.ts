@@ -3,17 +3,24 @@ import { Transform, TransformType } from "../components/Transform.ts";
 import { BasicMaterial, Material } from "../data/Material.ts";
 import { Entity } from "../Entity.js";
 import { Scene } from "../Scene.ts";
-import { AccessorComponentTypeEnum, type AccessorType, type Animation, type AnimationChannel, type GlTF, type MeshPrimitive, type Node, type Texture } from "./GLTFData.ts";
+import { AccessorComponentTypeEnum, type Animation, type AnimationChannel, type GlTF, type MeshPrimitive, type Node } from "./GLTFData.ts";
 import { Camera } from "../components/Camera.js";
 import { Mesh } from "../components/Mesh.ts";
 import { KeyframeAnimation, KeyframeAnimationChannel, KeyframeInterpolation, KeyframeTarget, type Keyframe } from "../components/KeyframeAnimation.ts";
 import { Skin } from "../components/Skin.ts";
 
+/**
+ * A glTF parser.
+ * See the glTF format specification for detailed workings of the format.
+ */
 export class GLTFParser {
-    data: GlTF;
-    buffers: Uint8Array[] = [];
-    rootDirectory: string = "./";
+    data: GlTF;                     // the parsed JSON data
+    buffers: Uint8Array[] = [];     // all glTF buffers
+    rootDirectory: string = "./";   // when retrieving files from disk, we need a root dir where the .gltf file resides
 
+    // These structures are used as cache since
+    // a lot of data links to other data that may
+    // have already been loaded
     materials: Map<any, Material> = new Map();
     scenes: Map<any, Scene> = new Map();
     nodes: Map<any, Entity> = new Map();
@@ -29,11 +36,20 @@ export class GLTFParser {
         };
     }
 
+    /**
+     * Loads JSON file (.gltf).
+     * @param content text contents of the glTF spec file
+     * @param rootDirectory the disk directory where the .gltf file is located (used for buffer/texture loading)
+     */
     async setJson(content: string, rootDirectory: string) {
         this.data = JSON.parse(content);
         this.rootDirectory = rootDirectory;
     }
 
+    /**
+     * Loads the binary glTF (.glb).
+     * @param content binary contents of the file
+     */
     async setBinary(content: Uint8Array) {       
         const dataView = new DataView(content.buffer, content.byteOffset, content.byteLength);
         const magic = dataView.getUint32(0, true);
@@ -80,6 +96,11 @@ export class GLTFParser {
         this.buffers = binaryChunks;
     }
 
+    /**
+     * Parses a specified scene from the glTF file.
+     * @param index index of the scene in the glTF file
+     * @returns a {@link Scene} object if it exists
+     */
     async parseScene(index: number) {
         if (!this.data.scenes) {
             return null;

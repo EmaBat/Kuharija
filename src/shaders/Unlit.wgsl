@@ -62,5 +62,4 @@ fn vertexSkinned(input: SkinnedVertexInput) -> VertexOutput {
 @fragment
 fn fragment(input: VertexOutput) -> @location(0) vec4f {
     return textureSample(baseTexture, textureSampler, input.uv);
-    //return color;
 }

@@ -2,6 +2,11 @@ import type { RenderState } from "../RenderState.ts";
 import type { Scene } from "../Scene.ts";
 
 
+/**
+ * A system that renders the given scene.
+ * @param state render state
+ * @param scene the scene
+ */
 export function render(state: RenderState, scene: Scene) {
     const canvasTexture = state.context.getCurrentTexture();
     const depthView = state.sceneDepthTexture.view;

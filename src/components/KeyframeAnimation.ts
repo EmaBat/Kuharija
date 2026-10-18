@@ -3,23 +3,37 @@ import type { Component } from "../Component.ts";
 import type { Entity } from "../Entity.ts";
 import { Transform } from "./Transform.ts";
 
+/**
+ * Interpolation of values between keyframes
+ */
 export enum KeyframeInterpolation {
     Constant,
     Linear,
     CubicSpline
 }
 
+/**
+ * Which property is being animated
+ */
 export enum KeyframeTarget {
     Translation,
     Rotation,
     Scale
 }
 
+/**
+ * A keyframe stores a specific value at a specific time,
+ * thus creating change in values through the timeline
+ */
 export type Keyframe = {
-    time: number; // Seconds
-    value: vec3 | quat;
+    time: number;       // in seconds
+    value: vec3 | quat; // can be vector or quaternion, since we have translation/scale/rotation
 };
 
+/**
+ * An animation channel. Holds the keyframes of a specific
+ * value animation, its interpolation, and what property should be animated.
+ */
 export class KeyframeAnimationChannel {
     interpolation: KeyframeInterpolation;
     target: KeyframeTarget;
@@ -28,21 +42,27 @@ export class KeyframeAnimationChannel {
     keyframeIndex: number;
     previousTime: number;
 
-    constructor(
-        interpolation: KeyframeInterpolation,
-        target: KeyframeTarget,
-        keyframes: Keyframe[]
-    ) {
+    constructor(interpolation: KeyframeInterpolation, target: KeyframeTarget, keyframes: Keyframe[]) {
         this.keyframeIndex = 0;
         this.previousTime = 0;
 
         this.interpolation = interpolation;
         this.target = target;
         this.keyframes = keyframes;
+        // We sort the keyframes through time in advance
+        // so that keyframe lookup is more efficient
         keyframes.sort((a, b) => a.time - b.time);
     }
 
+    /**
+     * Finds the last keyframe before current animation time.
+     * This and the next keyframe can then be used to compute
+     * new animation value.
+     * @param passedTime Current time in animation, in seconds
+     */
     _findKeyframe(passedTime: number) {
+        // POSSIBLE CHALLENGE: There is surely a more efficient
+        // way to get the keyframe interval for current time ... ;)
         for (let i = 0; i < this.keyframes.length; i++) {
             const keyframe = this.keyframes[i];
             if (keyframe.time > passedTime) {
@@ -53,6 +73,15 @@ export class KeyframeAnimationChannel {
         this.keyframeIndex = this.keyframes.length - 1;
     }
 
+    /**
+     * Computes the animated value for the current time.
+     * 
+     * NOTE: Currently, only linear interpolation is supported!
+     * If you need other types of interpolation, you will need to
+     * implement them yourselves.
+     * @param entity The entity to update the value of
+     * @param passedTime Current time in animation, in seconds
+     */
     update(entity: Entity, passedTime: number) {
         if (this.keyframes.length === 0) {
             return;
@@ -73,7 +102,7 @@ export class KeyframeAnimationChannel {
         }
 
         this.previousTime = passedTime;
-        
+
         if (this.keyframeIndex >= this.keyframes.length - 1) {
             return;
         }
@@ -104,14 +133,24 @@ export class KeyframeAnimationChannel {
     }
 }
 
+/**
+ * The component that handles the keyframed animation of the entity.
+ * Currently only supports animation of {@link Transform} properties.
+ * 
+ * This component handles multiple animations by storing them as channels.
+ * Each channel can run independently but the functionality has to be extended
+ * for that.
+ */
 export class KeyframeAnimation implements Component {
     channels: KeyframeAnimationChannel[];
+    // Whether the animation repeats after reaching its end.
+    // This currently repeats all channels.
     isLooping: boolean;
     isPaused: boolean;
 
     entity: Entity;
     passedTime: number;
-    endTime: number;
+    duration: number;
 
     constructor(
         channels: KeyframeAnimationChannel[],
@@ -125,31 +164,43 @@ export class KeyframeAnimation implements Component {
         this.entity = entity;
         this.passedTime = 0.0;
 
-        this.endTime = 0.0;
+        // We compute full animation duration from keyframe data,
+        // taking the duration of the longest channel.
+        this.duration = 0.0;
         for (const channel of channels) {
             const keyframes = channel.keyframes;
             if (keyframes.length === 0) {
-                this.endTime = 0;
+                this.duration = 0;
             } else {
-                this.endTime = Math.max(keyframes[keyframes.length - 1].time, this.endTime);
+                this.duration = Math.max(keyframes[keyframes.length - 1].time, this.duration);
             }
         }
     }
 
+    /**
+     * Plays the entire animation
+     */
     play() {
         this.isPaused = false;
     }
 
+    /**
+     * Pauses the animation
+     */
     pause() {
         this.isPaused = true;
     }
 
+    /**
+     * Updates the animated data based on passed time.
+     * @param dt Time duration from previous frame to this one, in seconds
+     */
     update(dt: number) {
         if (this.isPaused) {
             return;
         }
 
-        if (this.passedTime > this.endTime && this.isLooping) {
+        if (this.passedTime > this.duration && this.isLooping) {
             this.passedTime = 0.0;
         }
 

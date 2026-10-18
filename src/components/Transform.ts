@@ -1,24 +1,33 @@
 import { mat4, quat, vec3 } from "gl-matrix";
 import type { Component } from "../Component.ts";
 
+/**
+ * The transform type specifies how the attributes
+ * of the Transform component are interpreted.
+ * LookAt is sometimes used with camera and
+ * its local matrix is actually an inverse!
+ */
 export enum TransformType {
-    Free,
-    LookAt
+    Free,   // Uses _location, _rotation, and _scale to construct a transform
+    LookAt  // Uses _location, _target, and _up to construct a matrix that points towards the target
 }
 
+/**
+ * A transformation component.
+ */
 export class Transform implements Component {
-    private _location: vec3;
-    private _rotation: quat;
-    private _scale: vec3;
-
-    private _target: vec3;
-    private _up: vec3;
-
     transformType: TransformType;
+    
+    private _location: vec3;    // position of the object
+    private _rotation: quat;    // rotation of the object
+    private _scale: vec3;       // scale of the object
 
-    private _localMatrix: mat4;
-    private _worldMatrix: mat4;
-    private _isDirty: boolean;
+    private _target: vec3;      // (look-at) what the object looks toward
+    private _up: vec3;          // (look-at) where does the upward axis of the object point to
+
+    private _localMatrix: mat4; // object's local matrix (either actual transform in Free type, or inverse in LookAt type)
+    private _worldMatrix: mat4; // object's global matrix that accounts for its parent's transform (should be computed inside a system)
+    private _isDirty: boolean;  // marks that the local matrix should be recomputed
 
     uniformBuffer: GPUBuffer | null = null;
 
@@ -98,6 +107,7 @@ export class Transform implements Component {
                     break;
                 
                 case TransformType.LookAt:
+                    // TODO: Check if there is a problem in viewMatrix()!
                     mat4.lookAt(
                         this._localMatrix,
                         this._location,

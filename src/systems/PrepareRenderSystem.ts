@@ -6,6 +6,12 @@ import type { RenderState } from "../RenderState.ts";
 import type { Scene } from "../Scene.ts";
 
 
+/**
+ * A system that prepares the render state for rendering.
+ * Prepares textures and renderers.
+ * @param state render state
+ * @param scene current scene
+ */
 export async function prepareRendering(state: RenderState, scene: Scene) {
     console.log("Preparing textures...");
 
@@ -15,7 +21,7 @@ export async function prepareRendering(state: RenderState, scene: Scene) {
             const material = mesh.material;
             if (material instanceof BasicMaterial) {
                 const image = material.baseTexture;
-                state.createMaterialTexture(image);
+                state.createImageTexture(image);
             }
         }
     }

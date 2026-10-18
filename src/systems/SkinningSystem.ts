@@ -5,7 +5,7 @@ import type { Entity } from "../Entity.ts";
 import type { Scene } from "../Scene.ts";
 
 
-function computeSkinForEntity(entity: Entity) {
+function _computeSkinForEntity(entity: Entity) {
     const skin = entity.getComponent(Skin);
     if (!skin) {
         return;
@@ -40,8 +40,14 @@ function computeSkinForEntity(entity: Entity) {
 }
 
 
+/**
+ * The system that computes deformation
+ * matrices of the bones for entities
+ * that have skeleton animation (skinning).
+ * @param scene the scene
+ */
 export function computeSkins(scene: Scene) {
     for (const entity of scene.entities) {
-        computeSkinForEntity(entity);
+        _computeSkinForEntity(entity);
     }
 }
