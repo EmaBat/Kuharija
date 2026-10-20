@@ -22,6 +22,7 @@ export interface GlTF {
     scenes?: Scene[];
     skins?: Skin[];
     textures?: Texture[];
+    extensions?: Extensions;
 }
  
 export interface Asset {
@@ -232,6 +233,15 @@ export interface Node {
     translation?: [number, number, number];
     weights?: number[];
     name?: string;
+    extensions?: NodeExtensions;
+}
+
+export interface NodeExtensions {
+    KHR_lights_punctual?: NodeExtensionLights;
+}
+
+export interface NodeExtensionLights {
+    light: number;
 }
  
 export type SamplerMagFilter = 9728 | 9729;
@@ -287,4 +297,28 @@ export interface Texture {
 export interface TextureInfo {
     index: number;
     texCoord?: number;
+}
+
+export interface Extensions {
+    KHR_lights_punctual?: LightsExtension;
+}
+
+export interface LightsExtension {
+    lights: Light[];
+}
+
+export type LightType = 'point' | 'spot' | 'directional';
+
+export interface Light {
+    color?: [number, number, number];
+    intensity?: number;
+    type: LightType;
+    name?: string;
+    range?: number;
+    spot?: Spot;
+}
+
+export interface Spot {
+    innerConeAngle?: number;
+    outerConeAngle?: number;
 }

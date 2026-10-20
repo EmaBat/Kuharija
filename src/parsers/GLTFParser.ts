@@ -8,6 +8,7 @@ import { Camera } from "../components/Camera.js";
 import { Mesh } from "../components/Mesh.ts";
 import { KeyframeAnimation, KeyframeAnimationChannel, KeyframeInterpolation, KeyframeTarget, type Keyframe } from "../components/KeyframeAnimation.ts";
 import { Skin } from "../components/Skin.ts";
+import { Light, LightType } from "../components/Light.ts";
 
 /**
  * A glTF parser.
@@ -26,6 +27,7 @@ export class GLTFParser {
     nodes: Map<any, Entity> = new Map();
     cameras: Map<any, Camera> = new Map();
     meshes: Map<any, Mesh[]> = new Map();
+    lights: Map<any, Light> = new Map();
     images: Map<any, ImageBitmap> = new Map();
     animationChannels: Map<any, AnimationChannel> = new Map();
     accessors: Map<any, { data: Uint8Array<ArrayBuffer> | Int8Array<ArrayBuffer> | Int16Array<ArrayBuffer> | Uint16Array<ArrayBuffer> | Uint32Array<ArrayBuffer> | Float32Array<ArrayBuffer>, count: number, numComponents: number }> = new Map();
@@ -157,6 +159,13 @@ export class GLTFParser {
             const camera = this.parseCamera(nodeSpec.camera);
             if (camera) {
                 nodeEntity.addComponent(camera);
+            }
+        }
+
+        if (nodeSpec.extensions && nodeSpec.extensions.KHR_lights_punctual) {
+            const light = this.parseLight(nodeSpec.extensions.KHR_lights_punctual.light);
+            if (light) {
+                nodeEntity.addComponent(light);
             }
         }
 
@@ -693,6 +702,31 @@ export class GLTFParser {
             }
         }
     }
+
+    parseLight(index: number) {
+        if (!this.data.extensions || !this.data.extensions.KHR_lights_punctual) {
+            return null;
+        }
+
+        const lightSpec = this.data.extensions.KHR_lights_punctual.lights[index];
+        if (this.lights.has(lightSpec)) {
+            return this.lights.get(lightSpec)!;
+        }
+
+        const lightType = LIGHT_TYPE[lightSpec.type];
+
+        const light = new Light(lightType);
+        light.color = lightSpec.color !== undefined ? vec3.fromValues(...lightSpec.color) : vec3.fromValues(1, 1, 1);
+        light.intensity = lightSpec.intensity ?? 1.0;
+        light.range = lightSpec.range ?? Number.POSITIVE_INFINITY;
+        if (lightSpec.spot) {
+            light.innerConeAngle = lightSpec.spot.innerConeAngle ?? 0;
+            light.outerConeAngle = lightSpec.spot.outerConeAngle ?? Math.PI / 4;
+        }
+
+        this.lights.set(lightSpec, light);
+        return light;
+    }
 }
 
 
@@ -749,6 +783,13 @@ const ANIMATION_INTERPOLATION = {
     'LINEAR': KeyframeInterpolation.Linear,
     'STEP': KeyframeInterpolation.Constant,
     'CUBICSPLINE': KeyframeInterpolation.CubicSpline
+};
+
+
+const LIGHT_TYPE = {
+    'spot': LightType.Spot,
+    'directional': LightType.Directional,
+    'point': LightType.Point
 };
 
 
