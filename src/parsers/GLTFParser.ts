@@ -9,6 +9,7 @@ import { Mesh } from "../components/Mesh.ts";
 import { KeyframeAnimations, KeyframeAnimationChannel, KeyframeInterpolation, KeyframeTarget, type Keyframe, KeyframeAnimation } from "../components/KeyframeAnimation.ts";
 import { Skin } from "../components/Skin.ts";
 import { Light, LightType } from "../components/Light.ts";
+import { Primitive } from "../data/Primitive.ts";
 
 /**
  * A glTF parser.
@@ -26,7 +27,7 @@ export class GLTFParser {
     scenes: Map<any, Scene> = new Map();
     nodes: Map<any, Entity> = new Map();
     cameras: Map<any, Camera> = new Map();
-    meshes: Map<any, Mesh[]> = new Map();
+    meshes: Map<any, Mesh> = new Map();
     lights: Map<any, Light> = new Map();
     images: Map<any, ImageBitmap> = new Map();
     animationChannels: Map<any, AnimationChannel> = new Map();
@@ -146,9 +147,7 @@ export class GLTFParser {
         nodeEntity.name = nodeSpec.name ?? null;
 
         if (nodeSpec.mesh !== undefined) {
-            const meshes = await this.parseMesh(nodeSpec.mesh);
-            // TODO: Fix this
-            const mesh = meshes[0];
+            const mesh = await this.parseMesh(nodeSpec.mesh);
             nodeEntity.addComponent(mesh);
         }
         
@@ -240,16 +239,16 @@ export class GLTFParser {
             return this.meshes.get(meshSpec)!;
         }
 
-        const meshes: Mesh[] = [];
-        for (const primitive of meshSpec.primitives) {
-            const mesh = await this.parseMeshPrimitive(primitive);
-            if (mesh) {
-                meshes.push(mesh);
+        const mesh: Mesh = new Mesh();
+        for (const primitiveSpec of meshSpec.primitives) {
+            const primitive = await this.parseMeshPrimitive(primitiveSpec);
+            if (primitive) {
+                mesh.addPrimitive(primitive);
             }
         }
 
-        this.meshes.set(meshSpec, meshes);
-        return meshes;
+        this.meshes.set(meshSpec, mesh);
+        return mesh;
     }
 
     async parseMeshPrimitive(primitive: MeshPrimitive) {
@@ -354,7 +353,7 @@ export class GLTFParser {
             }
         }
 
-        return new Mesh(vertices, indices, material, skinVertices);
+        return new Primitive(vertices, indices, material, skinVertices);
     }
 
     async parseAccessor(index: number) {

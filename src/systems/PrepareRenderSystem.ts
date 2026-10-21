@@ -18,8 +18,9 @@ export async function prepareRendering(state: RenderState, scene: Scene) {
     for (const entity of scene.entities) {
         const mesh = entity.getComponent(Mesh);
         if (mesh) {
-            const material = mesh.material;
-            if (material instanceof BasicMaterial) {
+            const primitives = mesh.getPrimitivesByMaterial(BasicMaterial) ?? [];
+            for (const primitive of primitives) {
+                const material = primitive.material as BasicMaterial;
                 const image = material.baseTexture;
                 state.createImageTexture(image);
             }

@@ -2,7 +2,7 @@ import { vec4 } from "gl-matrix";
 import type { Component } from "./Component.ts";
 import { Mesh } from "./components/Mesh.ts";
 import { Transform, TransformType } from "./components/Transform.ts";
-import { BasicMaterial } from "./data/Material.ts";
+import { BasicMaterial, Material } from "./data/Material.ts";
 import { Entity } from "./Entity.ts";
 
 
@@ -12,6 +12,7 @@ import { Entity } from "./Entity.ts";
  * passing component types, e.g. Scene.getEntitiesByComponent
  */
 export type ComponentConstructor<T extends Component = Component> = new (...args: any[]) => T;
+export type MaterialConstructor<T extends Material = Material> = new (...args: any[]) => T;
 
 
 /**
@@ -42,7 +43,7 @@ export function createCube(): Entity {
     const material = new BasicMaterial(new ImageBitmap(), vec4.fromValues(0.5, 1, 0, 1));
 
     const cube = new Entity();
-    const mesh = new Mesh(vertices, indices, material);
+    const mesh = new Mesh();
     const transform = new Transform(TransformType.Free);
     cube.addComponent(mesh);
     cube.addComponent(transform);

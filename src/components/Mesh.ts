@@ -1,5 +1,6 @@
 import type { Component } from "../Component.ts";
-import type { Material } from "../data/Material.ts";
+import type { Primitive } from "../data/Primitive.ts";
+import type { MaterialConstructor } from "../Utils.ts";
 
 
 /**
@@ -7,19 +8,29 @@ import type { Material } from "../data/Material.ts";
  * and corresponding GPU vertex/index buffers.
  */
 export class Mesh implements Component {
-    vertices: Float32Array;
-    indices: Uint32Array | Uint16Array;
-    material: Material;
-    skinVertices: ArrayBuffer | null;
+    primitives: Map<MaterialConstructor, Primitive[]> = new Map();
 
-    vertexBuffer: GPUBuffer | null = null;
-    skinVertexBuffer: GPUBuffer | null = null;
-    indexBuffer: GPUBuffer | null = null;
+    constructor() {}
 
-    constructor(vertices: Float32Array, indices: Uint32Array | Uint16Array, material: Material, skinVertices: ArrayBuffer | null = null) {
-        this.vertices = vertices;
-        this.indices = indices;
-        this.material = material;
-        this.skinVertices = skinVertices;
+    /**
+     * Adds a primitive to mesh.
+     * @param primitive primitive to add
+     */
+    addPrimitive(primitive: Primitive) {
+        const constructor = primitive.material.constructor as MaterialConstructor;
+        if (this.primitives.has(constructor)) {
+            this.primitives.get(constructor)?.push(primitive);
+        } else {
+            this.primitives.set(constructor, [primitive]);
+        }
+    }
+
+    /**
+     * Gets all primitives in the mesh that contain material of that type.
+     * @param materialType constructor of the material
+     * @returns list of primitives or `undefined` if none of this type exist on the mesh
+     */
+    getPrimitivesByMaterial(materialType: MaterialConstructor) {
+        return this.primitives.get(materialType);
     }
 }

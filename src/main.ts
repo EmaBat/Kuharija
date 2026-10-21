@@ -41,7 +41,7 @@ if (!scene) {
 console.log(scene);
 const player = scene.getEntityByName('Okostje');
 if (player) {
-    playAnimation(scene, player, 'drop');
+    playAnimation(scene, player, 'dance');
 }
 
 

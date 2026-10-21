@@ -47,21 +47,26 @@ export function _writeMeshBuffers(state: RenderState, entity: Entity) {
         return;
     }
 
-    if (mesh.vertexBuffer) {
-        state.device.queue.writeBuffer(mesh.vertexBuffer, 0, mesh.vertices);
-    } else {
-        console.warn("Vertex buffer not initialized!");
+    for (const primitives of mesh.primitives.values()) {
+        for (const primitive of primitives) {
+            if (primitive.vertexBuffer) {
+                state.device.queue.writeBuffer(primitive.vertexBuffer, 0, primitive.vertices);
+            } else {
+                console.warn("Vertex buffer not initialized!");
+            }
+        
+            if (primitive.indexBuffer) {
+                state.device.queue.writeBuffer(primitive.indexBuffer, 0, primitive.indices);
+            } else {
+                console.warn("Index buffer not initialized!");
+            }
+        
+            if (primitive.skinVertexBuffer) {
+                state.device.queue.writeBuffer(primitive.skinVertexBuffer, 0, primitive.skinVertices);
+            }
+        }
     }
 
-    if (mesh.indexBuffer) {
-        state.device.queue.writeBuffer(mesh.indexBuffer, 0, mesh.indices);
-    } else {
-        console.warn("Index buffer not initialized!");
-    }
-
-    if (mesh.skinVertexBuffer) {
-        state.device.queue.writeBuffer(mesh.skinVertexBuffer, 0, mesh.skinVertices);
-    }
 }
 
 export function _writeSkinBuffer(state: RenderState, entity: Entity) {
@@ -83,13 +88,14 @@ export async function _writeMaterialBuffer(state: RenderState, entity: Entity) {
         return;
     }
 
-    const material = mesh.material;
-    if (!material.uniformBuffer) {
-        console.warn("Material buffer not initialized!");
-        return;
-    }
+    const primitives = mesh.getPrimitivesByMaterial(BasicMaterial) ?? [];
+    for (const primitive of primitives) {
+        const material = primitive.material as BasicMaterial;
+        if (!material.uniformBuffer) {
+            console.warn("Material buffer not initialized!");
+            continue;
+        }
 
-    if (material instanceof BasicMaterial) {
         state.device.queue.writeBuffer(material.uniformBuffer, 0, material.baseColor);
     }
 }

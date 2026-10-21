@@ -53,25 +53,30 @@ function _createMeshBuffer(state: RenderState, entity: Entity) {
         return;
     }
 
-    mesh.vertexBuffer = state.device.createBuffer({
-        size: mesh.vertices.byteLength,
-        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX
-    });
-    mesh.indexBuffer = state.device.createBuffer({
-        size: mesh.indices.byteLength,
-        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.INDEX
-    });
-
-    if (mesh.skinVertices) {
-        let skinVertexBufferSize = mesh.skinVertices.byteLength;
-        mesh.skinVertexBuffer = state.device.createBuffer({
-            size: skinVertexBufferSize,
-            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX,
-        });
+    for (const primitives of mesh.primitives.values()) {
+        for (const primitive of primitives) {
+            primitive.vertexBuffer = state.device.createBuffer({
+                size: primitive.vertices.byteLength,
+                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX
+            });
+            primitive.indexBuffer = state.device.createBuffer({
+                size: primitive.indices.byteLength,
+                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.INDEX
+            });
+        
+            if (primitive.skinVertices) {
+                let skinVertexBufferSize = primitive.skinVertices.byteLength;
+                primitive.skinVertexBuffer = state.device.createBuffer({
+                    size: skinVertexBufferSize,
+                    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX,
+                });
+            }
+        
+            let material = primitive.material;
+            createMateralBuffer(state, material);
+        }
     }
 
-    let material = mesh.material;
-    createMateralBuffer(state, material);
 }
 
 function createMateralBuffer(state: RenderState, material: Material) {

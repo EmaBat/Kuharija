@@ -218,24 +218,30 @@ export class UnlitRenderer {
 
             const mesh = entity.getComponent(Mesh);
             if (mesh) {
-                const materialBuffer = mesh.material.uniformBuffer;
-                if (!(mesh.material instanceof BasicMaterial)) {
-                    continue;
-                }
+                const primitives = mesh.getPrimitivesByMaterial(BasicMaterial) ?? [];
 
-                const texture = renderState.getMaterialTexture(mesh.material.baseTexture);
-                if (!texture) {
-                    throw Error("Material texture not initialized!");
+                for (const primitive of primitives) {
+                    const material = primitive.material as BasicMaterial;
+                    if (this.materialBindGroups.has(material)) {
+                        continue;
+                    }
+
+                    const materialBuffer = material.uniformBuffer;
+                    const texture = renderState.getMaterialTexture(material.baseTexture);
+                    if (!texture) {
+                        throw Error("Material texture not initialized!");
+                    }
+                    const materialBindGroup = renderState.device.createBindGroup({
+                        layout: materialBindGroupLayout,
+                        entries: [
+                            { binding: 0, resource: materialBuffer! },
+                            { binding: 1, resource: texture.view },
+                            { binding: 2, resource: renderState.sampler }
+                        ]
+                    });
+
+                    this.materialBindGroups.set(material, materialBindGroup);
                 }
-                const materialBindGroup = renderState.device.createBindGroup({
-                    layout: materialBindGroupLayout,
-                    entries: [
-                        { binding: 0, resource: materialBuffer! },
-                        { binding: 1, resource: texture.view },
-                        { binding: 2, resource: renderState.sampler }
-                    ]
-                });
-                this.materialBindGroups.set(mesh.material, materialBindGroup);
             }
 
             const skin = entity.getComponent(Skin);
@@ -269,30 +275,40 @@ export class UnlitRenderer {
             }
 
             const modelBindGroup = this.modelBindGroups.get(entity);
-            const materialBindGroup = this.materialBindGroups.get(mesh.material);
-            const vertexBuffer = mesh.vertexBuffer;
-            const indexBuffer = mesh.indexBuffer;
 
-            if (!modelBindGroup || !materialBindGroup || !vertexBuffer || !indexBuffer) {
+            const primitives = mesh.getPrimitivesByMaterial(BasicMaterial);
+            if (!primitives) {
                 continue;
             }
 
-            pass.setBindGroup(1, modelBindGroup);
-            pass.setBindGroup(2, materialBindGroup);
-            if (skin) {
-                const skinBindGroup = this.skinBindGroups.get(entity);
-                if (skinBindGroup && mesh.skinVertexBuffer) {
-                    pass.setBindGroup(3, this.skinBindGroups.get(entity));
-                    pass.setVertexBuffer(1, mesh.skinVertexBuffer);
+            for (const primitive of primitives) {
+                const material = primitive.material as BasicMaterial;
+
+                const materialBindGroup = this.materialBindGroups.get(material);
+                const vertexBuffer = primitive.vertexBuffer;
+                const indexBuffer = primitive.indexBuffer;
+
+                if (!modelBindGroup || !materialBindGroup || !vertexBuffer || !indexBuffer) {
+                    continue;
                 }
+
+                pass.setBindGroup(1, modelBindGroup);
+                pass.setBindGroup(2, materialBindGroup);
+                if (skin) {
+                    const skinBindGroup = this.skinBindGroups.get(entity);
+                    if (skinBindGroup && primitive.skinVertexBuffer) {
+                        pass.setBindGroup(3, this.skinBindGroups.get(entity));
+                        pass.setVertexBuffer(1, primitive.skinVertexBuffer);
+                    }
+                }
+                pass.setVertexBuffer(0, vertexBuffer);
+                if (primitive.indices instanceof Uint16Array) {
+                    pass.setIndexBuffer(indexBuffer, 'uint16');
+                } else {
+                    pass.setIndexBuffer(indexBuffer, 'uint32');
+                }
+                pass.drawIndexed(primitive.indices.length);
             }
-            pass.setVertexBuffer(0, vertexBuffer);
-            if (mesh.indices instanceof Uint16Array) {
-                pass.setIndexBuffer(indexBuffer, 'uint16');
-            } else {
-                pass.setIndexBuffer(indexBuffer, 'uint32');
-            }
-            pass.drawIndexed(mesh.indices.length);
         }
     }
 }
