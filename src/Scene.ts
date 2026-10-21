@@ -40,4 +40,18 @@ export class Scene {
         }
         return entities;
     }
+
+    /**
+     * Retrieves the entity with the given name if it exists. May return null otherwise.
+     * @param name name of the entity
+     * @returns the entity or null
+     */
+    getEntityByName(name: string) {
+        for (const entity of this._entities) {
+            if (entity.name === name) {
+                return entity;
+            }
+        }
+        return null;
+    }
 }

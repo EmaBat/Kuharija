@@ -4,7 +4,7 @@ import type { Entity } from "../Entity.ts";
 
 /**
  * This defines the skeleton on the mesh
- * that can be animated
+ * that can be animated.
  */
 export class Skin implements Component {
     joints: Entity[];   // bones of the skeleton

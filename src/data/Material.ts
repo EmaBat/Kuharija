@@ -2,7 +2,7 @@ import { vec4 } from "gl-matrix";
 
 /**
  * The structure that defines how mesh
- * surface is rendered
+ * surface is rendered.
  */
 export abstract class Material {
     uniformBuffer: GPUBuffer | null = null;
@@ -11,7 +11,7 @@ export abstract class Material {
 
 /**
  * A simple example material that just applies
- * unshaded image texture to the mesh
+ * unshaded image texture to the mesh.
  */
 export class BasicMaterial extends Material {
     baseTexture: ImageBitmap;

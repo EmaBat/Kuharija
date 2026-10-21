@@ -25,7 +25,7 @@ export class Transform implements Component {
     private _target: vec3;      // (look-at) what the object looks toward
     private _up: vec3;          // (look-at) where does the upward axis of the object point to
 
-    private _localMatrix: mat4; // object's local matrix (either actual transform in Free type, or inverse in LookAt type)
+    private _localMatrix: mat4; // object's local matrix
     private _worldMatrix: mat4; // object's global matrix that accounts for its parent's transform (should be computed inside a system)
     private _isDirty: boolean;  // marks that the local matrix should be recomputed
 

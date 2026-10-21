@@ -6,7 +6,7 @@ import { Scene } from "../Scene.ts";
 import { AccessorComponentTypeEnum, type Animation, type AnimationChannel, type GlTF, type MeshPrimitive, type Node } from "./GLTFData.ts";
 import { Camera } from "../components/Camera.js";
 import { Mesh } from "../components/Mesh.ts";
-import { KeyframeAnimation, KeyframeAnimationChannel, KeyframeInterpolation, KeyframeTarget, type Keyframe } from "../components/KeyframeAnimation.ts";
+import { KeyframeAnimations, KeyframeAnimationChannel, KeyframeInterpolation, KeyframeTarget, type Keyframe, KeyframeAnimation } from "../components/KeyframeAnimation.ts";
 import { Skin } from "../components/Skin.ts";
 import { Light, LightType } from "../components/Light.ts";
 
@@ -120,11 +120,8 @@ export class GLTFParser {
         }
 
         const animationMap = await this.parseAnimations();
-        for (const [entity, animationChannels] of animationMap) {
-            const animation = new KeyframeAnimation(
-                animationChannels, true, false, entity
-            );
-            entity.addComponent(animation);
+        for (const [entity, animations] of animationMap) {
+            entity.addComponent(animations);
         }
 
         const skinMap = await this.parseSkins();
@@ -631,19 +628,34 @@ export class GLTFParser {
     }
 
     async parseAnimations() {
-        const entityAnimationChannelsMap: Map<Entity, KeyframeAnimationChannel[]> = new Map();
+        const animations: Map<Entity, KeyframeAnimations> = new Map();
         if (!this.data.animations) {
-            return new Map<Entity, KeyframeAnimationChannel[]>();
+            return new Map<Entity, KeyframeAnimations>();
         }
-        for (const animation of this.data.animations) {
-            await this.parseAnimation(animation, entityAnimationChannelsMap);
+
+        for (const animationSpec of this.data.animations) {
+            if (animationSpec.name === undefined) {
+                console.warn("GLTF: Animation does not have a name. Storing under 'undefined'...");
+            }
+            const name = animationSpec.name ?? 'undefined';
+            const animationChannels = await this.parseAnimation(animationSpec);
+
+            for (const [entity, channels] of animationChannels.entries()) {
+                const animation = new KeyframeAnimation(name, channels, true, true);
+                if (!animations.has(entity)) {
+                    animations.set(entity, new KeyframeAnimations(entity));
+                }
+                animations.get(entity)?.addAnimation(animation);
+            }
         }
-        return entityAnimationChannelsMap;
+        return animations;
     }
 
-    async parseAnimation(animation: Animation, entityAnimationChannelsMap: Map<Entity, KeyframeAnimationChannel[]>) {
+    async parseAnimation(animation: Animation) {
         const channels = animation.channels;
         const samplers = animation.samplers;
+
+        const channelsPerEntity: Map<Entity, KeyframeAnimationChannel[]> = new Map();
 
         for (const channel of channels) {
             const target = channel.target;
@@ -695,12 +707,13 @@ export class GLTFParser {
                 keyframes
             );
 
-            if (entityAnimationChannelsMap.has(entity)) {
-                entityAnimationChannelsMap.get(entity)?.push(keyframeChannel);
+            if (channelsPerEntity.has(entity)) {
+                channelsPerEntity.get(entity)?.push(keyframeChannel);
             } else {
-                entityAnimationChannelsMap.set(entity, [keyframeChannel]);
+                channelsPerEntity.set(entity, [keyframeChannel]);
             }
         }
+        return channelsPerEntity;
     }
 
     parseLight(index: number) {
@@ -730,7 +743,7 @@ export class GLTFParser {
 }
 
 
-const COMPONENTS_IN_TYPE: Record<string, number> = {
+const COMPONENTS_IN_TYPE = {
     SCALAR: 1,
     VEC2: 2,
     VEC3: 3,
@@ -795,10 +808,11 @@ const LIGHT_TYPE = {
 
 async function createTempTexture(color?: vec4) {
     const raw = new Uint8ClampedArray(4);
-    raw[0] = color ? color[0] * 255 : 255;
-    raw[1] = color ? color[1] * 255 : 0;
-    raw[2] = color ? color[2] * 255 : 0;
-    raw[3] = color ? color[3] * 255 : 255;
+    const col = color ?? vec4.fromValues(1, 0, 0, 1);
+    raw[0] = col[0] * 255;
+    raw[1] = col[1] * 255;
+    raw[2] = col[2] * 255;
+    raw[3] = col[3] * 255;
     const texture = new ImageData(raw, 1, 1);
     const bitmap = await createImageBitmap(texture);
     return bitmap;

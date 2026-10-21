@@ -4,7 +4,7 @@ import type { Entity } from "../Entity.ts";
 import { Transform } from "./Transform.ts";
 
 /**
- * Interpolation of values between keyframes
+ * Interpolation of values between keyframes.
  */
 export enum KeyframeInterpolation {
     Constant,
@@ -13,7 +13,7 @@ export enum KeyframeInterpolation {
 }
 
 /**
- * Which property is being animated
+ * Which property is being animated.
  */
 export enum KeyframeTarget {
     Translation,
@@ -23,7 +23,7 @@ export enum KeyframeTarget {
 
 /**
  * A keyframe stores a specific value at a specific time,
- * thus creating change in values through the timeline
+ * thus creating change in values through the timeline.
  */
 export type Keyframe = {
     time: number;       // in seconds
@@ -134,36 +134,30 @@ export class KeyframeAnimationChannel {
 }
 
 /**
- * The component that handles the keyframed animation of the entity.
- * Currently only supports animation of {@link Transform} properties.
  * 
- * This component handles multiple animations by storing them as channels.
- * Each channel can run independently but the functionality has to be extended
- * for that.
  */
 export class KeyframeAnimation implements Component {
+    name: string;
     channels: KeyframeAnimationChannel[];
     // Whether the animation repeats after reaching its end.
     // This currently repeats all channels.
     isLooping: boolean;
     isPaused: boolean;
 
-    entity: Entity;
     passedTime: number;
     duration: number;
 
     constructor(
+        name: string,
         channels: KeyframeAnimationChannel[],
         isLooping: boolean,
-        isPaused: boolean,
-        entity: Entity
+        isPaused: boolean
     ) {
+        this.name = name;
         this.channels = channels;
         this.isLooping = isLooping;
         this.isPaused = isPaused;
-        this.entity = entity;
         this.passedTime = 0.0;
-
         // We compute full animation duration from keyframe data,
         // taking the duration of the longest channel.
         this.duration = 0.0;
@@ -178,24 +172,31 @@ export class KeyframeAnimation implements Component {
     }
 
     /**
-     * Plays the entire animation
+     * Plays the entire animation.
      */
     play() {
         this.isPaused = false;
     }
 
     /**
-     * Pauses the animation
+     * Pauses the animation.
      */
     pause() {
         this.isPaused = true;
     }
 
     /**
+     * Resets the animation to the beginning.
+     */
+    reset() {
+        this.passedTime = 0;
+    }
+
+    /**
      * Updates the animated data based on passed time.
      * @param dt Time duration from previous frame to this one, in seconds
      */
-    update(dt: number) {
+    update(dt: number, entity: Entity) {
         if (this.isPaused) {
             return;
         }
@@ -205,9 +206,69 @@ export class KeyframeAnimation implements Component {
         }
 
         for (const channel of this.channels) {
-            channel.update(this.entity, this.passedTime);
+            channel.update(entity, this.passedTime);
         }
 
         this.passedTime += dt;
+    }
+}
+
+/**
+ * The component that handles the keyframed animations of the entity.
+ * Currently only supports animation of {@link Transform} properties.
+ */
+export class KeyframeAnimations implements Component {
+    animations: Map<string, KeyframeAnimation>;
+    entity: Entity;
+
+    constructor(entity: Entity) {
+        this.animations = new Map();
+        this.entity = entity;
+    }
+
+    /**
+     * Adds a keyframed animation into animation pool.
+     * The animation is stored under its name.
+     * @param animation keyframed animation
+     */
+    addAnimation(animation: KeyframeAnimation) {
+        this.animations.set(animation.name, animation);
+    }
+
+    /**
+     * Plays an animation. The animation should be
+     * specified by its name.
+     * @param name name of the animation
+     */
+    playAnimation(name: string) {
+        this.animations.get(name)?.play();
+    }
+
+    /**
+     * Pauses an animation. The animation should be
+     * specified by its name.
+     * @param name name of the animation
+     */
+    pauseAnimation(name: string) {
+        this.animations.get(name)?.pause();
+    }
+
+    /**
+     * Resets an animation to the beginning.
+     * The animation should be specified by its name.
+     * @param name name of the animation
+     */
+    resetAnimation(name: string) {
+        this.animations.get(name)?.reset();
+    }
+
+    /**
+     * Updates all active animations.
+     * @param dt time difference from the last frame
+     */
+    update(dt: number) {
+        for (const animation of this.animations.values()) {
+            animation.update(dt, this.entity);
+        }
     }
 }
