@@ -111,19 +111,17 @@ export class KeyframeAnimationChannel {
             ? clamp((passedTime - startKeyframe.time) / interval, 0, 1)
             : 0;
 
-        if (this.keyframeIndex >= this.keyframes.length - 1) {
-            return;
-        }
-
         const transform = entity.getComponent(Transform);
         if (!transform) {
             return;
         }
 
-        if (this.target === KeyframeTarget.Translation || this.target === KeyframeTarget.Scale) {
+        if (this.target === KeyframeTarget.Translation) {
             transform.location = vec3.lerp(transform.location, startKeyframe.value, endKeyframe.value, t);
         } else if (this.target === KeyframeTarget.Rotation) {
             transform.rotation = quat.slerp(transform.rotation, startKeyframe.value, endKeyframe.value, t);
+        } else if (this.target === KeyframeTarget.Scale) {
+            transform.scale = vec3.lerp(transform.scale, startKeyframe.value, endKeyframe.value, t);
         }
     }
 }
