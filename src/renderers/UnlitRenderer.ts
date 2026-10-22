@@ -276,10 +276,7 @@ export class UnlitRenderer {
 
             const modelBindGroup = this.modelBindGroups.get(entity);
 
-            const primitives = mesh.getPrimitivesByMaterial(BasicMaterial);
-            if (!primitives) {
-                continue;
-            }
+            const primitives = mesh.getPrimitivesByMaterial(BasicMaterial) ?? [];
 
             for (const primitive of primitives) {
                 const material = primitive.material as BasicMaterial;
