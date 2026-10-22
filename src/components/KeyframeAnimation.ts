@@ -3,6 +3,11 @@ import type { Component } from "../Component.ts";
 import type { Entity } from "../Entity.ts";
 import { Transform } from "./Transform.ts";
 
+function clamp(value: number, min: number, max: number) {
+    return Math.min(Math.max(value, min), max);
+}
+
+
 /**
  * Interpolation of values between keyframes.
  */
@@ -95,13 +100,16 @@ export class KeyframeAnimationChannel {
             this.keyframeIndex < this.keyframes.length - 1 &&
             passedTime >= this.keyframes[this.keyframeIndex + 1].time
         ) {
-            this.keyframeIndex = Math.min(
-                this.keyframes.length - 1,
-                this.keyframeIndex + 1
-            );
+            this.keyframeIndex = this.keyframeIndex + 1;
         }
-
         this.previousTime = passedTime;
+
+        const startKeyframe = this.keyframes[this.keyframeIndex];
+        const endKeyframe = this.keyframes[Math.min(this.keyframeIndex + 1, this.keyframes.length - 1)]
+        const interval = endKeyframe.time - startKeyframe.time;
+        const t = interval > 0
+            ? clamp((passedTime - startKeyframe.time) / interval, 0, 1)
+            : 0;
 
         if (this.keyframeIndex >= this.keyframes.length - 1) {
             return;
@@ -112,23 +120,10 @@ export class KeyframeAnimationChannel {
             return;
         }
 
-        const startKeyframe = this.keyframes[this.keyframeIndex];
-        const endKeyframe = this.keyframes[this.keyframeIndex + 1];
-        let t = (passedTime - startKeyframe.time) / (endKeyframe.time - startKeyframe.time);
-
-        switch (this.target) {
-            case KeyframeTarget.Translation: {
-                transform.location = vec3.lerp(transform.location, startKeyframe.value, endKeyframe.value, t);
-                break;
-            }
-            case KeyframeTarget.Rotation: {
-                transform.rotation = quat.slerp(transform.rotation, startKeyframe.value, endKeyframe.value, t);
-                break;
-            }
-            case KeyframeTarget.Scale: {
-                transform.scale = vec3.lerp(transform.scale, startKeyframe.value, endKeyframe.value, t);
-                break;
-            }
+        if (this.target === KeyframeTarget.Translation || this.target === KeyframeTarget.Scale) {
+            transform.location = vec3.lerp(transform.location, startKeyframe.value, endKeyframe.value, t);
+        } else if (this.target === KeyframeTarget.Rotation) {
+            transform.rotation = quat.slerp(transform.rotation, startKeyframe.value, endKeyframe.value, t);
         }
     }
 }
@@ -163,9 +158,7 @@ export class KeyframeAnimation implements Component {
         this.duration = 0.0;
         for (const channel of channels) {
             const keyframes = channel.keyframes;
-            if (keyframes.length === 0) {
-                this.duration = 0;
-            } else {
+            if (keyframes.length !== 0) {
                 this.duration = Math.max(keyframes[keyframes.length - 1].time, this.duration);
             }
         }

@@ -59,6 +59,8 @@ function _createMeshBuffer(state: RenderState, entity: Entity) {
                 size: primitive.vertices.byteLength,
                 usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX
             });
+            // This could cause an error
+            // if primitive.indices.byteLength is not a multiple of 4
             primitive.indexBuffer = state.device.createBuffer({
                 size: primitive.indices.byteLength,
                 usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.INDEX

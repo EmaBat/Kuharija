@@ -107,7 +107,6 @@ export class Transform implements Component {
                     break;
                 
                 case TransformType.LookAt:
-                    // TODO: Check if there is a problem in viewMatrix()!
                     mat4.lookAt(
                         this._localMatrix,
                         this._location,
@@ -128,7 +127,12 @@ export class Transform implements Component {
     get viewMatrix() {
         switch(this.transformType) {
             case TransformType.Free:
-                return mat4.invert(mat4.create(), this._worldMatrix);
+                try {
+                    // May throw an error if scale is (0, 0, 0)
+                    return mat4.invert(mat4.create(), this._worldMatrix);
+                } catch {
+                    return mat4.create();
+                }
             case TransformType.LookAt:
                 return this._worldMatrix;
         }

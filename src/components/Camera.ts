@@ -77,6 +77,7 @@ export class Camera implements Component {
                 this._near,
                 this._far
             )
+            this._isDirty = false;
         }
         return this._perspectiveMatrix;
     }

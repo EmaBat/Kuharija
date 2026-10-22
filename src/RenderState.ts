@@ -76,6 +76,10 @@ export class RenderState {
      * @param image An image to store into texture
      */
     createImageTexture(image: ImageBitmap) {
+        if (this.imageTextures.has(image)) {
+            return;
+        }
+        
         const texture = this.device.createTexture({
             format: 'rgba8unorm',
             size: [image.width, image.height],

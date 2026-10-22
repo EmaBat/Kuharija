@@ -1,15 +1,16 @@
 import { mat4, quat, vec3, vec4 } from "gl-matrix";
 import { Transform, TransformType } from "../components/Transform.ts";
 import { BasicMaterial, Material } from "../data/Material.ts";
-import { Entity } from "../Entity.js";
+import { Entity } from "../Entity.ts";
 import { Scene } from "../Scene.ts";
 import { AccessorComponentTypeEnum, type Animation, type AnimationChannel, type GlTF, type MeshPrimitive, type Node } from "./GLTFData.ts";
-import { Camera } from "../components/Camera.js";
+import { Camera } from "../components/Camera.ts";
 import { Mesh } from "../components/Mesh.ts";
 import { KeyframeAnimations, KeyframeAnimationChannel, KeyframeInterpolation, KeyframeTarget, type Keyframe, KeyframeAnimation } from "../components/KeyframeAnimation.ts";
 import { Skin } from "../components/Skin.ts";
 import { Light, LightType } from "../components/Light.ts";
 import { Primitive } from "../data/Primitive.ts";
+import { createTempTexture } from "../Utils.ts";
 
 /**
  * A glTF parser.
@@ -23,11 +24,11 @@ export class GLTFParser {
     // These structures are used as cache since
     // a lot of data links to other data that may
     // have already been loaded
-    materials: Map<any, Material> = new Map();
     scenes: Map<any, Scene> = new Map();
     nodes: Map<any, Entity> = new Map();
     cameras: Map<any, Camera> = new Map();
     meshes: Map<any, Mesh> = new Map();
+    materials: Map<any, Material> = new Map();
     lights: Map<any, Light> = new Map();
     images: Map<any, ImageBitmap> = new Map();
     animationChannels: Map<any, AnimationChannel> = new Map();
@@ -39,12 +40,27 @@ export class GLTFParser {
         };
     }
 
+    clearCache() {
+        this.buffers = [];
+        this.materials.clear();
+        this.scenes.clear();
+        this.nodes.clear();
+        this.cameras.clear();
+        this.meshes.clear();
+        this.materials.clear();
+        this.lights.clear();
+        this.images.clear();
+        this.animationChannels.clear();
+        this.accessors.clear();
+    }
+
     /**
      * Loads JSON file (.gltf).
      * @param content text contents of the glTF spec file
      * @param rootDirectory the disk directory where the .gltf file is located (used for buffer/texture loading)
      */
     async setJson(content: string, rootDirectory: string) {
+        this.clearCache();
         this.data = JSON.parse(content);
         this.rootDirectory = rootDirectory;
     }
@@ -53,7 +69,8 @@ export class GLTFParser {
      * Loads the binary glTF (.glb).
      * @param content binary contents of the file
      */
-    async setBinary(content: Uint8Array) {       
+    async setBinary(content: Uint8Array) {    
+        this.clearCache();   
         const dataView = new DataView(content.buffer, content.byteOffset, content.byteLength);
         const magic = dataView.getUint32(0, true);
         const version = dataView.getUint32(4, true);
@@ -110,6 +127,10 @@ export class GLTFParser {
         }
 
         const sceneSpec = this.data.scenes[index];
+        if (sceneSpec === undefined) {
+            return null;
+        }
+
         const nodes = sceneSpec.nodes ? sceneSpec.nodes : [];
         
         const scene = new Scene();
@@ -148,7 +169,9 @@ export class GLTFParser {
 
         if (nodeSpec.mesh !== undefined) {
             const mesh = await this.parseMesh(nodeSpec.mesh);
-            nodeEntity.addComponent(mesh);
+            if (mesh) {
+                nodeEntity.addComponent(mesh);
+            }
         }
         
         if (nodeSpec.camera !== undefined) {
@@ -216,7 +239,7 @@ export class GLTFParser {
 
         if (cameraSpec.type === 'orthographic' || !cameraSpec.perspective) {
             console.warn("GLTF: Orhtographic camera is not supported!");
-            return new Camera(1, 2 / Math.PI, 0.1, 100.0);
+            return new Camera(1, Math.PI / 2, 0.1, 100.0);
         }
 
         let aspect = cameraSpec.perspective.aspectRatio ?? 1.0;
@@ -231,7 +254,7 @@ export class GLTFParser {
 
     async parseMesh(index: number) {
         if (!this.data.meshes) {
-            return [];
+            return null;
         }
 
         let meshSpec = this.data.meshes[index];
@@ -281,7 +304,11 @@ export class GLTFParser {
                 console.warn("Could not get mesh indices");
                 return null;
             }
-            indices = accessor.data as Uint16Array;
+            if (accessor.data instanceof Uint32Array || accessor.data instanceof Uint16Array) {
+                indices = accessor.data;
+            } else {
+                indices = Uint16Array.from(accessor.data);
+            }
         } else {
             indices = Uint32Array.from({ length: vertexCount }, (_, index) => index);
         }
@@ -315,29 +342,32 @@ export class GLTFParser {
             const vertexStart = i * 11;
             
             for (let c = 0; c < 3; c++) {
-                vertices[vertexStart + c] = positions.data[i * 3 + c];
+                vertices[vertexStart + c] = positions.data[i * positions.numComponents + c];
             }
             if (normals) {
                 for (let c = 0; c < 3; c++) {
-                    vertices[vertexStart + 3 + c] = normals.data[i * 3 + c];
+                    vertices[vertexStart + 3 + c] = normals.data[i * normals.numComponents + c];
                 }
             }
             if (textureCoordinates) {
                 for (let c = 0; c < 2; c++) {
-                    vertices[vertexStart + 6 + c] = textureCoordinates.data[i * 2 + c];
+                    vertices[vertexStart + 6 + c] = textureCoordinates.data[i * textureCoordinates.numComponents + c];
                 }
             }
             if (tangents) {
                 for (let c = 0; c < 3; c++) {
-                    vertices[vertexStart + 8 + c] = tangents.data[i * 3 + c];
+                    vertices[vertexStart + 8 + c] = tangents.data[i * tangents.numComponents + c];
                 }
             }
         }
 
-        const bitmap = await createTempTexture();
-        const material = primitive.material !== undefined
-            ? await this.parseMaterial(primitive.material)
-            : new BasicMaterial(bitmap, vec4.fromValues(1, 1, 1, 1));
+        let material: Material;
+        if (primitive.material !== undefined) {
+            material = await this.parseMaterial(primitive.material);
+        } else {
+            const bitmap = await createTempTexture();
+            material = new BasicMaterial(bitmap, vec4.fromValues(1, 1, 1, 1));
+        }
 
         let skinVertices = null;
         if (joints && weights) {
@@ -403,7 +433,7 @@ export class GLTFParser {
         const start = (viewSpec.byteOffset ?? 0) + (accessorSpec.byteOffset ?? 0);
         const normalized = accessorSpec.normalized === true && componentMax > 0;
 
-        let dataSize = start + count * stride;
+        let dataSize = start + (count - 1) * stride + elementSize;
         if (count > 0 && dataSize > buffer.byteLength) {
             throw Error(`GLTF: Accessor ${accessorSpec.name} exceeds buffer size!`);
         }
@@ -518,7 +548,10 @@ export class GLTFParser {
         }
 
         const textureSpec = this.data.textures[index];
-        const source = textureSpec.source!;
+        const source = textureSpec.source;
+        if (source === undefined) {
+            return await createTempTexture();
+        }
         let image = await this.getImage(source);
         if (!image) {
             image = await createTempTexture();
@@ -803,16 +836,3 @@ const LIGHT_TYPE = {
     'directional': LightType.Directional,
     'point': LightType.Point
 };
-
-
-async function createTempTexture(color?: vec4) {
-    const raw = new Uint8ClampedArray(4);
-    const col = color ?? vec4.fromValues(1, 0, 0, 1);
-    raw[0] = col[0] * 255;
-    raw[1] = col[1] * 255;
-    raw[2] = col[2] * 255;
-    raw[3] = col[3] * 255;
-    const texture = new ImageData(raw, 1, 1);
-    const bitmap = await createImageBitmap(texture);
-    return bitmap;
-}

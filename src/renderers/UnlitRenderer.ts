@@ -34,6 +34,10 @@ export class UnlitRenderer {
         outputTextureFormat: GPUTextureFormat,
         renderState: RenderState
     ) {
+        if (!camera) {
+            throw Error("No camera provided to Unlit Renderer!");
+        }
+
         // Bind Group Layouts
 
         const cameraBindGroupLayout = renderState.device.createBindGroupLayout({
@@ -268,11 +272,6 @@ export class UnlitRenderer {
             }
 
             const skin = entity.getComponent(Skin);
-            if (!skin) {
-                pass.setPipeline(this.pipeline);
-            } else {
-                pass.setPipeline(this.skinnedPipeline);
-            }
 
             const modelBindGroup = this.modelBindGroups.get(entity);
 
@@ -289,15 +288,17 @@ export class UnlitRenderer {
                     continue;
                 }
 
+                const skinBindGroup = this.skinBindGroups.get(entity);
+                if (!skin || !skinBindGroup || !primitive.skinVertexBuffer) {
+                    pass.setPipeline(this.pipeline);
+                } else {
+                    pass.setPipeline(this.skinnedPipeline);
+                    pass.setBindGroup(3, this.skinBindGroups.get(entity));
+                    pass.setVertexBuffer(1, primitive.skinVertexBuffer);
+                }
+
                 pass.setBindGroup(1, modelBindGroup);
                 pass.setBindGroup(2, materialBindGroup);
-                if (skin) {
-                    const skinBindGroup = this.skinBindGroups.get(entity);
-                    if (skinBindGroup && primitive.skinVertexBuffer) {
-                        pass.setBindGroup(3, this.skinBindGroups.get(entity));
-                        pass.setVertexBuffer(1, primitive.skinVertexBuffer);
-                    }
-                }
                 pass.setVertexBuffer(0, vertexBuffer);
                 if (primitive.indices instanceof Uint16Array) {
                     pass.setIndexBuffer(indexBuffer, 'uint16');

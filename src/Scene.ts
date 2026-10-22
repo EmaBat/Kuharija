@@ -23,7 +23,9 @@ export class Scene {
      */
     removeEntity(entity: Entity) {
         let i = this._entities.indexOf(entity);
-        this._entities.splice(i, 1);
+        if (i !== -1) {
+            this._entities.splice(i, 1);
+        }
     }
 
     /**

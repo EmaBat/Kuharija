@@ -47,11 +47,19 @@ if (player) {
 
 // ------ Initalize GPU/Rendering specific interfaces ------ //
 
+if (!navigator.gpu) {
+    throw Error("WebGPU not supported in this browser!");
+}
 const gpuAdapter = await navigator.gpu.requestAdapter();
 if (!gpuAdapter) {
     throw Error("Could not get WebGPU adapter!");
 }
 const gpuDevice = await gpuAdapter.requestDevice();
+gpuDevice.addEventListener('uncapturederror', (e) => console.error(e.error.message));
+gpuDevice.lost.then((v) => {
+    console.error(`GPU device lost: ${v.message} (${v.reason})`);
+});
+
 const canvas = document.querySelector('canvas');
 if (!canvas) {
     throw Error("Could not find a canvas!");
@@ -77,6 +85,11 @@ function resize() {
     }
     let width = canvas.clientWidth;
     let height = canvas.clientHeight;
+    if (width === 0 || height === 0) {
+        width = 1;
+        height = 1;
+    }
+
     let aspect = width / height;
 
     // Update the camera

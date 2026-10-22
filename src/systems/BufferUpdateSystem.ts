@@ -82,7 +82,7 @@ export function _writeSkinBuffer(state: RenderState, entity: Entity) {
     }
 }
 
-export async function _writeMaterialBuffer(state: RenderState, entity: Entity) {
+export function _writeMaterialBuffer(state: RenderState, entity: Entity) {
     const mesh = entity.getComponent(Mesh);
     if (!mesh) {
         return;
