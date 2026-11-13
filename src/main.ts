@@ -16,8 +16,16 @@ import { Input } from "./Input.ts";
 import { PlayerController } from "./components/PlayerController.ts";
 import { movePlayer } from "./systems/PlayerMovementSystem.ts";
 
-//dodano za kamero da sledi čarovcnici
-import { followPlayer } from "./systems/FollowCameraSystem.ts";
+//dodano za kamero da sledi čarovcnici in lahko kroži okoli nje
+import {
+    followPlayer,
+    OrbitCameraController,
+} from "./systems/FollowCameraSystem.ts";
+
+
+//dodano za trke
+import { vec3 } from "gl-matrix";
+import { Collider } from "./components/Collider.ts";
 
 // ------ Create sample scene ------ //
 
@@ -55,6 +63,18 @@ if (!player) {
 player.addComponent(new PlayerController(3));
 
 const input = new Input();
+
+//kocki dodamo veliksot oziroma komponento colilider ki se potem obdela v CollisionSystem
+const cube = scene.getEntityByName("Cube");
+
+if (!cube) {
+    throw new Error("V sceni ni objekta Cube.");
+}
+
+cube.addComponent(new Collider(
+    vec3.fromValues(-1, -1, -1),
+    vec3.fromValues(1, 1, 1),
+));
 
 
 
@@ -108,6 +128,9 @@ const canvas = document.querySelector('canvas');
 if (!canvas) {
     throw Error("Could not find a canvas!");
 }
+//dodano da se kamera lahko premika okoli čarovnice
+const orbitCamera = new OrbitCameraController(canvas);
+
 const renderState = new RenderState(gpuDevice, canvas);
 
 
@@ -166,9 +189,32 @@ function update(timestamp: number) {
     const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
     lastTime = timestamp;
 
+    animateScene(scene, dt);
+    computeTransforms(scene);
 
+    if (cameraEntity && player) {
+        // Nastavimo smer kamere glede na trenutno miško.
+        followPlayer(cameraEntity, player, orbitCamera);
 
+        // Premaknemo igralko glede na to smer.
+        movePlayer(scene, input, dt, cameraEntity);
+    }
 
+    computeTransforms(scene);
+
+    if (cameraEntity && player) {
+        // Kamera sledi novemu položaju igralke.
+        followPlayer(cameraEntity, player, orbitCamera);
+    }
+
+    computeTransforms(scene);
+    computeSkins(scene);
+    updateBuffers(renderState, scene);
+    render(renderState, scene);
+
+    requestAnimationFrame(update);
+
+    /*
     animateScene(scene, dt);
     //dodano za premikanje igralca
     movePlayer(scene, input, dt);
@@ -184,6 +230,7 @@ function update(timestamp: number) {
     render(renderState, scene);
 
     requestAnimationFrame(update);
+    */
 }
 
 requestAnimationFrame(update);

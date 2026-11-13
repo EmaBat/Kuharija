@@ -2,6 +2,39 @@
 
 ## Podrobnosti glede ogrodja
 
+
+## dodajanje na Github:
+Pred začetkom dela:
+git pull
+
+
+Ko nekaj implementiraš:
+git status
+git add .
+git commit -m "Kratek opis sprememb"
+git push
+
+git status - Pokaže spremenjene datoteke in trenutno vejo.
+git add .   -	Pripravi vse spremembe v trenutni mapi za commit.
+git commit -m "Kratek opis sprememb"     - Lokalno shrani spremembe z opisom.
+git push    -Pošlje shranjene commite na GitHub.
+
+## Kaj je treba spremeniti:
+ - ob spreminjanju objekta ki se premika je v PlayerController treba spremeniti veliksot - zato da je preavilno poskrbljeno za trke
+
+ če želimo dadti objekte skozi katere igralka ne sme moramo narediti tako:
+ Naprimer da bi dodali mizo:
+    const table = scene.getEntityByName("KitchenTable");
+
+    if (table) {
+        table.addComponent(new Collider(
+            vec3.fromValues(-1.5, 0, -0.8),
+            vec3.fromValues(1.5, 1.2, 0.8),
+        ));
+    }
+
+
+
 ### Vhodni podatki
 
 Ogrodje privzeto podpira datoteke formata [glTF](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html). Razčlenjevalnik formata je preprost, zato ne podpira vseh funkcionalnosti, omogoča pa prebiranje:
