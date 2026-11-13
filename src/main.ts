@@ -11,10 +11,22 @@ import { computeSkins } from "./systems/SkinningSystem.ts";
 import { KeyframeAnimations } from "./components/KeyframeAnimation.ts";
 
 
+//dodano za premikanje
+import { Input } from "./Input.ts";
+import { PlayerController } from "./components/PlayerController.ts";
+import { movePlayer } from "./systems/PlayerMovementSystem.ts";
+
+//dodano za kamero da sledi čarovcnici
+import { followPlayer } from "./systems/FollowCameraSystem.ts";
+
 // ------ Create sample scene ------ //
 
 const gltfParser = new GLTFParser();
-/* const gltfContent = await fetch("data/demo_scene.gltf").then((r) => r.text());
+
+
+//============ DEMO SCENE ============//
+
+const gltfContent = await fetch("data/demo_scene.gltf").then((r) => r.text());
 gltfParser.setJson(gltfContent, 'data/');
 
 const scene = await gltfParser.parseScene(0);
@@ -26,13 +38,43 @@ const icosphere = scene.getEntityByName('Icosphere');
 if (icosphere) {
     playAnimation(scene, icosphere, 'IkosferaAkcija');
 }
+//po uspešnem nalaganju scene
+//pošičemo kamero
+const cameraEntity = scene.getEntityByName("Camera");
 
+if (!cameraEntity) {
+    throw new Error("V sceni ni objekta Camera.");
+}
+
+const player = scene.getEntityByName("Okostje");
+
+if (!player) {
+    throw new Error("V sceni ni objekta Okostje.");
+}
+
+player.addComponent(new PlayerController(3));
+
+const input = new Input();
+
+
+
+
+
+/*
+//==========Da se premika cilinder - tega še nočem ker ga hoče samo animirat da se premika
 const cylinder = scene.getEntityByName('Okostje');
 if (cylinder) {
     playAnimation(scene, cylinder, 'OkostjeAkcija')
-}*/
+}
+*/
 
-const gltfContent = await fetch("data/little_guy.gltf").then((r) => r.text());
+
+
+//============ LITTLE GUY ============//
+/*
+//const gltfContent = await fetch("data/little_guy.gltf").then((r) => r.text());
+const gltfContent = await fetch("data/littleGuyEdit.gltf").then((r) => r.text());
+
 gltfParser.setJson(gltfContent, 'data/');
 const scene = await gltfParser.parseScene(0);
 if (!scene) {
@@ -41,10 +83,12 @@ if (!scene) {
 console.log(scene);
 const player = scene.getEntityByName('Okostje');
 if (player) {
-    playAnimation(scene, player, 'dance');
+    playAnimation(scene, player, 'dance'); //ima tudi fight tako ločujemo katero animacijo naj predvajamo
+
 }
+    
 
-
+*/
 // ------ Initalize GPU/Rendering specific interfaces ------ //
 
 if (!navigator.gpu) {
@@ -113,15 +157,30 @@ function update(timestamp: number) {
     if (!scene) {
         return;
     }
-
+/*
     const dt = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
+*/
+
+//dodano za premikanje (omejiš velik preskok po daljši prekinitvi izrisovanja)
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+    lastTime = timestamp;
+
+
+
 
     animateScene(scene, dt);
+    //dodano za premikanje igralca
+    movePlayer(scene, input, dt);
+    //sledenje čarovnici
+    if (cameraEntity && player) {
+        followPlayer(cameraEntity, player);
+    }
+    //followPlayer(cameraEntity, player);
+
     computeTransforms(scene);
     computeSkins(scene);
     updateBuffers(renderState, scene);
-
     render(renderState, scene);
 
     requestAnimationFrame(update);

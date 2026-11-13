@@ -9,7 +9,9 @@
     "module": "nodenext",
     "target": "esnext",
     "moduleResolution": "nodenext",
-    "lib": ["DOM"],
+    //dodala sem ESNext ker include v Input.ts rabi to knjižnjico za delovanje
+    "lib": ["DOM", "ESNext"],
+    //"lib": ["DOM"],
     "types": ["@webgpu/types"],
 
     // Output
