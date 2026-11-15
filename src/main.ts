@@ -9,7 +9,7 @@ import { GLTFParser } from "./parsers/GLTFParser.ts";
 import { Camera } from "./components/Camera.ts";
 import { computeSkins } from "./systems/SkinningSystem.ts";
 import { KeyframeAnimations } from "./components/KeyframeAnimation.ts";
-
+import { Transform, TransformType } from "./components/Transform.ts";
 
 //dodano za premikanje
 import { Input } from "./Input.ts";
@@ -24,7 +24,7 @@ import {
 
 
 //dodano za trke
-import { vec3 } from "gl-matrix";
+import { vec3, mat4} from "gl-matrix";
 import { Collider } from "./components/Collider.ts";
 
 // ------ Create sample scene ------ //
@@ -54,6 +54,7 @@ if (!cameraEntity) {
     throw new Error("V sceni ni objekta Camera.");
 }
 
+//IGRALEC
 const player = scene.getEntityByName("Okostje");
 
 if (!player) {
@@ -64,6 +65,7 @@ player.addComponent(new PlayerController(3));
 
 const input = new Input();
 
+//KOCKA
 //kocki dodamo veliksot oziroma komponento colilider ki se potem obdela v CollisionSystem
 const cube = scene.getEntityByName("Cube");
 
@@ -76,8 +78,14 @@ cube.addComponent(new Collider(
     vec3.fromValues(1, 1, 1),
 ));
 
+//izracun oddaljenosti igralca od kocke
+const playerTransform = player.getComponent(Transform);
+const cubeTransform = cube.getComponent(Transform);
+const cameraTransform = cameraEntity.getComponent(Transform);
 
-
+if (!playerTransform || !cubeTransform || !cameraTransform) {
+    throw new Error("Igralec, kocka ali kamera nima komponente Transform.");
+}
 
 
 /*
@@ -143,7 +151,6 @@ createBuffers(renderState, scene);
 
 await prepareRendering(renderState, scene);
 
-
 // ------ Events ------ //
 
 function resize() {
@@ -173,6 +180,15 @@ window.addEventListener('resize', (_) => resize());
 resize();
 
 
+// ------ Game states ------ //
+enum GameMode {
+    NORMAL,
+    INTERACTION
+}
+
+let gameMode = GameMode.NORMAL;
+
+
 // ------ Start game loop ------ //
 
 let lastTime = performance.now();
@@ -192,7 +208,7 @@ function update(timestamp: number) {
     animateScene(scene, dt);
     computeTransforms(scene);
 
-    if (cameraEntity && player) {
+    if (cameraEntity && player && gameMode==GameMode.NORMAL) { //gameMode==GameMode.NORMAL ker ne zelimo da se igralec premika ce daje sestavine v kosarico
         // Nastavimo smer kamere glede na trenutno miško.
         followPlayer(cameraEntity, player, orbitCamera);
 
@@ -202,16 +218,52 @@ function update(timestamp: number) {
 
     computeTransforms(scene);
 
-    if (cameraEntity && player) {
+    if (cameraEntity && player && gameMode==GameMode.NORMAL) { //gameMode==GameMode.NORMAL ker ne zelimo da se igralec premika ce daje sestavine v kosarico
         // Kamera sledi novemu položaju igralke.
         followPlayer(cameraEntity, player, orbitCamera);
     }
 
+    //ce "Enter" preverimo ali je igralec dovol blizu kocke
+    if(input.justPressed("Enter")){
+    /*!!trenutno deluje ce se igralec pribliza "severne in juzne" strani kocke, to moramo se popraviti...odvisno od tega kaksna bo scena!!*/
+        //dobimo lokacijo igralca in kocke in kamere
+        const playerPosition = vec3.create();
+        const cubePosition = vec3.create();
+
+
+        mat4.getTranslation(playerPosition, playerTransform.worldMatrix);
+        mat4.getTranslation(cubePosition, cubeTransform.worldMatrix);
+
+    
+        const dx = playerPosition[0] - cubePosition[0];
+        const dy = playerPosition[1] - cubePosition[1];
+    
+        const distance = Math.sqrt(dx * dx + dy * dy);
+    
+        if(gameMode === GameMode.NORMAL){
+            if(distance < 1.5){ //men se zdi 1.5 kr okej
+                gameMode = GameMode.INTERACTION;
+                console.log("Vstop v INTERACTION!");
+                cameraTransform.transformType = TransformType.LookAt; //"kamero zelimo usmeriti proti doloceni tocki"
+                //                                                  kamera:       gor/dol             blizu/dalec
+                cameraTransform.location = vec3.fromValues(cubePosition[0], cubePosition[1] +0.5 , cubePosition[2] + 5); //doloci kje se kamera nahaj
+                cameraTransform.target = vec3.clone(cubePosition); //doloci kam naj kamera glede
+            }else{
+                console.log("predalec od kocke!");
+            }
+        }else{
+            gameMode = GameMode.NORMAL;
+            console.log("vrnitev v NORMAL!");
+        }
+    }
     computeTransforms(scene);
     computeSkins(scene);
     updateBuffers(renderState, scene);
+    //izrisi
     render(renderState, scene);
 
+    //pobrisi
+    input.endFrame();
     requestAnimationFrame(update);
 
     /*

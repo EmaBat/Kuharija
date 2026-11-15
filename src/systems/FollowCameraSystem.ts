@@ -51,6 +51,7 @@ export class OrbitCameraController {
     }
 }
 
+//ta funk. izracuna polozaj kamere glede na igralca in se v main.ts izvede ob vsaki posodobitvi igre
 export function followPlayer(
     cameraEntity: Entity,
     player: Entity,

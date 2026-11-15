@@ -184,3 +184,17 @@ Za lažje delo s TypeScriptom priporočamo uporabo urejevalnika Visual Studio Co
 4. Premaknite se v meni `Run and Debug` (ikona predvajalnega gumba s hroščem) ali uporabite bližnjico `Ctrl + Shift + D`.
 5. Kliknite gumb `Run` (zelena puščica) in počakajte, da se brskalnik odpre. Dostop do kontrol za razhroščevanje je na voljo prek menija, ki se ob razhroščevanju pojavi nad urejevalnikom kode.
 6. Če želite program ponovno zagnati, je dovolj, da brskalnik osvežite; zaustavitvene točke pa lahko dodajate ali odstranjujete tudi med izvajanjem programa.
+
+
+## IDEJE
+Jaz bom probala narest feature da se kamera iz 3rd person prestavi v 1st person ce se priblizamo polici (kocki trenutno) in pritisnemo "enter". Ko bos v 1st view bo igrca zaznavala samo misko in se mozic ne bo moral premikati, ko pritisnemo "enter" gremo nazaj v 3rd person.
+
+dodam dve stanji za igralca:   (tu lahko kasneje dodamo se stanja za kuhanje, gledanje receptou, ...)
+enum GameMode {
+    NORMAL,
+    INTERACTION
+}
+glede na vrednost GameMode dolocimo kaj lahko igralec pocne. 
+NORMAL:= dovolimo premikanje, kamera mu sledi, cakamo ce se bo priblizau kocki
+INTERACTION:= onemogocimo premikanje, kamera se prestavi pred kocko, omogocimo interakcijo z misko
+NOT IMPLEMENTED: klikanje z misko, dodajanje v kosarico, vizualni prikaz omare, lepsa animacija prehoda kamere
