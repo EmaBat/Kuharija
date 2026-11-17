@@ -27,6 +27,10 @@ import {
 import { vec3, mat4} from "gl-matrix";
 import { Collider } from "./components/Collider.ts";
 
+//dodano za preverjanje ali obstajajo objekti ali ne
+import type { Entity } from "./Entity.ts";
+
+
 // ------ Create sample scene ------ //
 
 const gltfParser = new GLTFParser();
@@ -79,13 +83,22 @@ cube.addComponent(new Collider(
 ));
 
 //izracun oddaljenosti igralca od kocke
-const playerTransform = player.getComponent(Transform);
-const cubeTransform = cube.getComponent(Transform);
-const cameraTransform = cameraEntity.getComponent(Transform);
+//poskrbi tudi da se preveri ali entitete sploh obstajajo 
+function requireTransform(entity: Entity): Transform {
+    const transform = entity.getComponent(Transform);
 
-if (!playerTransform || !cubeTransform || !cameraTransform) {
-    throw new Error("Igralec, kocka ali kamera nima komponente Transform.");
+    if (!transform) {
+        throw new Error(
+            `Objekt ${entity.name} nima komponente Transform.`,
+        );
+    }
+
+    return transform;
 }
+
+const playerTransform = requireTransform(player);
+const cubeTransform = requireTransform(cube);
+const cameraTransform = requireTransform(cameraEntity);
 
 
 /*
@@ -239,7 +252,7 @@ function update(timestamp: number) {
         const dy = playerPosition[1] - cubePosition[1];
     
         const distance = Math.sqrt(dx * dx + dy * dy);
-    
+        
         if(gameMode === GameMode.NORMAL){
             if(distance < 1.5){ //men se zdi 1.5 kr okej
                 gameMode = GameMode.INTERACTION;
@@ -256,6 +269,8 @@ function update(timestamp: number) {
             console.log("vrnitev v NORMAL!");
         }
     }
+
+
     computeTransforms(scene);
     computeSkins(scene);
     updateBuffers(renderState, scene);
