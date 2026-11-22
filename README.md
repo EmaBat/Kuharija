@@ -1,4 +1,9 @@
 # Ogrodje za igre pri RGTI
+main.ts: Glavna zanka igre, upravljanje kamere in interakcija s kocko
+Input.ts: Zaznavanje pritisnjenih tipk
+Scene.ts: Upravljanje entitet v sceni
+Entity.ts: Predstavitev posameznih objektov igre
+Transform.ts: Položaj, rotacija in transformacije objektov
 
 ## Podrobnosti glede ogrodja
 
@@ -186,7 +191,7 @@ Za lažje delo s TypeScriptom priporočamo uporabo urejevalnika Visual Studio Co
 6. Če želite program ponovno zagnati, je dovolj, da brskalnik osvežite; zaustavitvene točke pa lahko dodajate ali odstranjujete tudi med izvajanjem programa.
 
 
-## IDEJE
+# LOGIKA IZBIRANJA SESTAVIN
 Jaz bom probala narest feature da se kamera iz 3rd person prestavi v 1st person ce se priblizamo polici (kocki trenutno) in pritisnemo "enter". Ko bos v 1st view bo igrca zaznavala samo misko in se mozic ne bo moral premikati, ko pritisnemo "enter" gremo nazaj v 3rd person.
 
 dodam dve stanji za igralca:   (tu lahko kasneje dodamo se stanja za kuhanje, gledanje receptou, ...)
@@ -198,3 +203,31 @@ glede na vrednost GameMode dolocimo kaj lahko igralec pocne.
 NORMAL:= dovolimo premikanje, kamera mu sledi, cakamo ce se bo priblizau kocki
 INTERACTION:= onemogocimo premikanje, kamera se prestavi pred kocko, omogocimo interakcijo z misko
 NOT IMPLEMENTED: klikanje z misko, dodajanje v kosarico, vizualni prikaz omare, lepsa animacija prehoda kamere
+
+Kako bomo zaznavali igralcev klik na predmet?
+men se zdi ta logika se najbolsa, ker nimam modela. ce naredim tko potem ko bom mela model samo spremenim objekt, dimenzijo in predmete.
+UPDATE: sm dodala model notr in dela, ps: rabmo sence...
+->Ray Casting: 
+Postopek:
+1. Igralec klikne na zaslon
+2. Iz kamere skozi položaj miške pošljemo žarek
+3. Izračunamo presečišče žarka s sprednjo ploskvijo kocke
+4. Dobimo 3D koordinato presečišča
+5. To koordinato pretvorimo v lokalne koordinate kocke
+6. Ugotovimo v katero od x območij spada (kocka bom razdelila na 4x4 zaenkrat, kasneje stevilke smaos premenimo)
+
+imeli bomo dve strukturi:
+1) cupboard bo hranil vse predmete, v tem primeru imamo x1, x2,x3...na koncu bodo to "banana", "jabolko", ...
+cupboard = [
+    [1, 2, 3, 4],
+    [5, 6, 7, 8],
+    [9, 10, 11, 12],
+    [13, 14, 15, 16]
+]
+
+2) inventory igralca, ko bo igralec klikniu na x2 se bo ta dodau v kosarico, na polici zaenkrat se vedno obstaja.
+
+Kako sem to naredila:
+1. v input.ts sem dodala logiko zaznavanja koordinat miske, zato ker zelim da zaznamo klik miske samo znotraj canvasa, sem dodala tudi to, iz main se posle Input.ts kjer ga v konstruktorju "ujamemo".
+2. zarak (ray) potuje od kamere skozi mesto klika v 3D prostor, opisemo ga kot: P(t)=O+t*D, O=izhodisce zarka/kamera, D=smer zarka, t>=0 razdalja vzdolz zarka ce je D normaliziran, P(t)=tocka na zarku. Vse sm razlozila v enem notebooku na tablici, bejsikli nardimo vektor od kamere do far plane (z=1), nato to pretvarjamo dokler ne dobimo vse tocke v local koordinatah kocke (police) in nato izracunamo ce smo kliknili na kocko in kam.
+3. omara ki sm jo importala je narejena iz dveh delou, omare in predmetov v njej, zaenkrat sm ju pobarvala razlicne barve tok da se vidi ker se nimamo senc. 

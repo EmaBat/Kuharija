@@ -18,7 +18,11 @@
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
-    "rewriteRelativeImportExtensions": true,
+    //"rewriteRelativeImportExtensions": true,
+
+    //import
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
 
     // Recommended Options
     "strict": true,
