@@ -11,7 +11,6 @@ import { computeSkins } from "./systems/SkinningSystem.ts";
 import { KeyframeAnimations } from "./components/KeyframeAnimation.ts";
 import { Transform, TransformType } from "./components/Transform.ts";
 //test za omaro
-import { Entity } from "./Entity.ts";
 import { Mesh } from "./components/Mesh.ts";
 import { BasicMaterial } from "./data/Material.ts";
 import { createTempTexture } from "./Utils.ts";
@@ -30,6 +29,10 @@ import {
 //dodano za trke
 import { vec3, mat4, vec4} from "gl-matrix";
 import { Collider } from "./components/Collider.ts";
+
+//dodano za preverjanje ali obstajajo objekti ali ne
+import type { Entity } from "./Entity.ts";
+
 
 // ------ Create sample scene ------ //
 const gltfParser = new GLTFParser();
@@ -388,6 +391,8 @@ function update(timestamp: number) {
             console.log("vrnitev v NORMAL!");
         }
     }
+
+
     computeTransforms(scene);
 
     //local->world->view->clip->ndc

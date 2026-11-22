@@ -38,6 +38,20 @@ git push    -Pošlje shranjene commite na GitHub.
         ));
     }
 
+    
+
+
+#TO DO:
+ - oseba zgine ko pridemo do pogleda police
+ - implementacija pogleda na kitchen counter
+ - boundaries na tleh da ne more it dlje kot so narisana tla
+ - interakcija z objekti na polici
+   - 
+ - premikanje objektov v inventory
+   - ko kliknemo na objekt na polici se pojavi v inventoriju
+   - osvetlitev (od kje prihaja luč - maybe strop- sveče okoli prostora, ogenj pod kotlom ... - pač treba je narediti da je možno dodati različne vire svetlobe v prostoru)
+
+
 
 
 ### Vhodni podatki
