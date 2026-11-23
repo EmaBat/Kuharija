@@ -14,6 +14,7 @@ import { Transform, TransformType } from "./components/Transform.ts";
 import { Mesh } from "./components/Mesh.ts";
 import { BasicMaterial } from "./data/Material.ts";
 import { createTempTexture } from "./Utils.ts";
+import { Entity } from "./Entity.ts";
 
 //dodano za premikanje
 import { Input } from "./Input.ts";
@@ -29,10 +30,6 @@ import {
 //dodano za trke
 import { vec3, mat4, vec4} from "gl-matrix";
 import { Collider } from "./components/Collider.ts";
-
-//dodano za preverjanje ali obstajajo objekti ali ne
-import type { Entity } from "./Entity.ts";
-
 
 // ------ Create sample scene ------ //
 const gltfParser = new GLTFParser();
