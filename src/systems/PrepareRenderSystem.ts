@@ -1,7 +1,8 @@
 import { Camera } from "../components/Camera.ts";
 import { Mesh } from "../components/Mesh.ts";
-import { BasicMaterial } from "../data/Material.ts";
+import { BasicMaterial, LitMaterial } from "../data/Material.ts";
 import { UnlitRenderer } from "../renderers/UnlitRenderer.ts";
+import { LitRenderer } from "../renderers/LitRenderer.ts";
 import type { RenderState } from "../RenderState.ts";
 import type { Scene } from "../Scene.ts";
 
@@ -18,9 +19,15 @@ export async function prepareRendering(state: RenderState, scene: Scene) {
     for (const entity of scene.entities) {
         const mesh = entity.getComponent(Mesh);
         if (mesh) {
-            const primitives = mesh.getPrimitivesByMaterial(BasicMaterial) ?? [];
-            for (const primitive of primitives) {
+            const unlit_primitives = mesh.getPrimitivesByMaterial(BasicMaterial) ?? [];
+            const lit_primitives = mesh.getPrimitivesByMaterial(LitMaterial) ?? [];
+            for (const primitive of unlit_primitives) {
                 const material = primitive.material as BasicMaterial;
+                const image = material.baseTexture;
+                state.createImageTexture(image);
+            }
+            for (const primitive of lit_primitives) {
+                const material = primitive.material as LitMaterial;
                 const image = material.baseTexture;
                 state.createImageTexture(image);
             }
@@ -40,4 +47,13 @@ export async function prepareRendering(state: RenderState, scene: Scene) {
         state
     );
     state.unlitRenderer = unlitRenderer;
+
+    const litRenderer = new LitRenderer(
+        scene,
+        camera,
+        state.sceneDepthTexture.texture.format,
+        state.canvasFormat,
+        state
+    );
+    state.litRenderer = litRenderer;
 }

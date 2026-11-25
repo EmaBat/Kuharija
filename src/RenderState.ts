@@ -1,4 +1,5 @@
 import type { UnlitRenderer } from "./renderers/UnlitRenderer.ts";
+import type { LitRenderer } from "./renderers/LitRenderer.ts";
 
 
 /**
@@ -33,6 +34,7 @@ export class RenderState {
     // Renderers
 
     unlitRenderer: UnlitRenderer | null = null;
+    litRenderer: LitRenderer | null = null;
 
 
     constructor(device: GPUDevice, canvas: HTMLCanvasElement) {
@@ -81,7 +83,7 @@ export class RenderState {
         }
         
         const texture = this.device.createTexture({
-            format: 'rgba8unorm',
+            format: 'rgba8unorm-srgb',
             size: [image.width, image.height],
             usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT
         });

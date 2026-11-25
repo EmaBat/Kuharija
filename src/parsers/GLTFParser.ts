@@ -1,6 +1,6 @@
 import { mat4, quat, vec3, vec4 } from "gl-matrix";
 import { Transform, TransformType } from "../components/Transform.ts";
-import { BasicMaterial, Material } from "../data/Material.ts";
+import { BasicMaterial, LitMaterial, Material } from "../data/Material.ts";
 import { Entity } from "../Entity.ts";
 import { Scene } from "../Scene.ts";
 import { AccessorComponentTypeEnum, type Animation, type AnimationChannel, type GlTF, type MeshPrimitive, type Node } from "./GLTFData.ts";
@@ -531,7 +531,7 @@ export class GLTFParser {
         if (pbrSpec) {
             if (pbrSpec.baseColorFactor ) {
                 material.baseColor = vec4.fromValues(...pbrSpec.baseColorFactor);
-                material.baseTexture = await createTempTexture(material.baseColor);
+                //material.baseTexture = await createTempTexture(material.baseColor);
             }
             if (pbrSpec.baseColorTexture) {
                 material.baseTexture = await this.parseTexture(pbrSpec.baseColorTexture.index);

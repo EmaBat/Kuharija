@@ -1,6 +1,7 @@
 import type { Component } from "../Component.ts";
 import type { Primitive } from "../data/Primitive.ts";
 import type { MaterialConstructor } from "../Utils.ts";
+import type { Material } from "../data/Material.ts";
 
 
 /**
@@ -32,5 +33,30 @@ export class Mesh implements Component {
      */
     getPrimitivesByMaterial(materialType: MaterialConstructor) {
         return this.primitives.get(materialType);
+    }
+
+
+    setPrimitiveByMaterial(primitive: Primitive, material: Material) {
+        const oldConstructor = primitive.material.constructor as MaterialConstructor;
+        const oldList = this.primitives.get(oldConstructor);
+        
+        if(!oldList) {
+            console.warn("Primitive ni del tega modela.");
+            return;
+        } 
+
+        const index = oldList.indexOf(primitive);
+        if (index == -1) {
+            console.warn("Primitive ni del tega modela.");
+            return;
+        }
+
+        oldList.splice(index, 1);
+        if (oldList.length == 0) {
+            this.primitives.delete(oldConstructor);
+        }
+
+        primitive.material = material;
+        this.addPrimitive(primitive);
     }
 }

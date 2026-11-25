@@ -4,7 +4,7 @@ import type { RenderState } from "../RenderState.ts";
 import type { Scene } from "../Scene.ts";
 import { Mesh } from "../components/Mesh.ts";
 import type { Entity } from "../Entity.ts";
-import { BasicMaterial } from "../data/Material.ts";
+import { BasicMaterial, LitMaterial } from "../data/Material.ts";
 import { Skin } from "../components/Skin.ts";
 
 export function _writeCameraBuffer(state: RenderState, entity: Entity) {
@@ -88,8 +88,8 @@ export function _writeMaterialBuffer(state: RenderState, entity: Entity) {
         return;
     }
 
-    const primitives = mesh.getPrimitivesByMaterial(BasicMaterial) ?? [];
-    for (const primitive of primitives) {
+    const unlit_primitives = mesh.getPrimitivesByMaterial(BasicMaterial) ?? [];
+    for (const primitive of unlit_primitives) {
         const material = primitive.material as BasicMaterial;
         if (!material.uniformBuffer) {
             console.warn("Material buffer not initialized!");
@@ -98,6 +98,24 @@ export function _writeMaterialBuffer(state: RenderState, entity: Entity) {
 
         state.device.queue.writeBuffer(material.uniformBuffer, 0, material.baseColor);
     }
+
+    const lit_primitives = mesh.getPrimitivesByMaterial(LitMaterial) ?? [];
+    for (const primitive of lit_primitives) {
+        const material = primitive.material as BasicMaterial;
+        if (!material.uniformBuffer) {
+            console.warn("Material buffer not initialized!");
+            continue;
+        }
+
+        const data = new Float32Array(12);
+        data.set(material.baseColor, 0);
+        const params = [material.diffuse, material.specular, material.shininess, material.ambient];
+        data.set(params, 4);
+        data.set(material.emissive, 8);
+
+        state.device.queue.writeBuffer(material.uniformBuffer, 0, data);
+    }
+
 }
 
 /**

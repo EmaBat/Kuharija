@@ -4,7 +4,7 @@ import type { Entity } from "../Entity.ts";
 import type { RenderState } from "../RenderState.ts";
 import type { Scene } from "../Scene.ts";
 import { Mesh } from "../components/Mesh.ts";
-import { BasicMaterial, Material } from "../data/Material.ts";
+import { BasicMaterial, LitMaterial, Material } from "../data/Material.ts";
 import { _writeCameraBuffer, _writeMaterialBuffer, _writeMeshBuffers, _writeSkinBuffer, _writeTransformBuffer } from "./BufferUpdateSystem.ts";
 import { Skin } from "../components/Skin.ts";
 
@@ -75,16 +75,21 @@ function _createMeshBuffer(state: RenderState, entity: Entity) {
             }
         
             let material = primitive.material;
-            createMateralBuffer(state, material);
+            createMaterialBuffer(state, material);
         }
     }
 
 }
 
-function createMateralBuffer(state: RenderState, material: Material) {
+function createMaterialBuffer(state: RenderState, material: Material) {
     if (material instanceof BasicMaterial) {
         material.uniformBuffer = state.device.createBuffer({
-            size: 4 * 4,
+            size: 4 * 4, //baseColor (vec4)
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
+        });
+    } else if (material instanceof LitMaterial) {
+        material.uniformBuffer = state.device.createBuffer({
+            size: 12 * 4, // baseColor (vec4), diffuse, specular, shininess, ambient, emissive (vec4)
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
         });
     }

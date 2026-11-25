@@ -12,7 +12,7 @@ import { KeyframeAnimations } from "./components/KeyframeAnimation.ts";
 import { Transform, TransformType } from "./components/Transform.ts";
 //test za omaro
 import { Mesh } from "./components/Mesh.ts";
-import { BasicMaterial } from "./data/Material.ts";
+import { BasicMaterial, LitMaterial } from "./data/Material.ts";
 import { createTempTexture } from "./Utils.ts";
 import { Entity } from "./Entity.ts";
 
@@ -96,17 +96,18 @@ scene.addEntity(omaraEntity);
 for (const entity of omaraScene.entities) {
     const mesh = entity.getComponent(Mesh);
     if(mesh){
-        const primitives = mesh.getPrimitivesByMaterial(BasicMaterial);
+        // kopija seznama
+        const primitives = [...(mesh.getPrimitivesByMaterial(BasicMaterial) ?? [])];
         if (primitives) {
             for (const primitive of primitives) {
                 if (entity.name === "Cube") {
                     // Rjava omara
                     const barva = vec4.fromValues(0.45, 0.25, 0.12, 1);
-                    primitive.material = new BasicMaterial(await createTempTexture(barva), barva);
+                    mesh.setPrimitiveByMaterial(primitive, new LitMaterial(await createTempTexture(), barva));
                 }else if(entity.name === "objekti"){
                     // Svetlo rumeni predmeti
                     const barva = vec4.fromValues(1, 0.85, 0.3, 1);
-                    primitive.material = new BasicMaterial(await createTempTexture(barva),barva);
+                    mesh.setPrimitiveByMaterial(primitive, new LitMaterial(await createTempTexture(), barva));
                 }
             }
         }
