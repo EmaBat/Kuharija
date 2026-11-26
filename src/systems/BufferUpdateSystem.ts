@@ -7,6 +7,10 @@ import type { Entity } from "../Entity.ts";
 import { BasicMaterial, LitMaterial } from "../data/Material.ts";
 import { Skin } from "../components/Skin.ts";
 
+//za luči
+import { Light, LightType } from "../components/Light.ts";
+import { vec3, vec4, mat4 } from "gl-matrix";
+
 export function _writeCameraBuffer(state: RenderState, entity: Entity) {
     const camera = entity.getComponent(Camera);
     const transform = entity.getComponent(Transform);
@@ -101,7 +105,7 @@ export function _writeMaterialBuffer(state: RenderState, entity: Entity) {
 
     const lit_primitives = mesh.getPrimitivesByMaterial(LitMaterial) ?? [];
     for (const primitive of lit_primitives) {
-        const material = primitive.material as BasicMaterial;
+        const material = primitive.material as LitMaterial;
         if (!material.uniformBuffer) {
             console.warn("Material buffer not initialized!");
             continue;
@@ -116,6 +120,39 @@ export function _writeMaterialBuffer(state: RenderState, entity: Entity) {
         state.device.queue.writeBuffer(material.uniformBuffer, 0, data);
     }
 
+}
+
+// buffer za luči
+export function _writeLightBuffer(state: RenderState, scene: Scene) {
+    const lights = scene.getEntitiesByComponent(Light);
+    if (lights.length == 0) {
+        return;
+    }
+
+    for(const entity of lights) {
+        const light = entity.getComponent(Light);
+        if(!light) continue;
+
+        if (light.type == LightType.Directional) {
+            const transform = entity.getComponent(Transform);
+            if (!transform) continue;
+            const position = mat4.getTranslation(vec3.create(), transform.worldMatrix);
+            let dir4 = vec4.transformMat4(vec4.create(), vec4.fromValues(0, 0, -1, 0), transform.worldMatrix);
+            const dir = vec3.fromValues(dir4[0], dir4[1], dir4[2]);
+            vec3.normalize(dir, dir);
+        
+            const data = new Float32Array(16);
+            // pozicija, tip - tipe zapišemo s številom kot si sledijo po vrsti v enum LightType (Directional - 1)
+            data.set([position[0], position[1], position[2], 1], 0);
+            data.set([dir[0], dir[1], dir[2], light.range], 4);
+            data.set([light.color[0], light.color[1], light.color[2], light.intensity], 8);
+            data.set([Math.cos(light.innerConeAngle), Math.cos(light.outerConeAngle)], 12);
+
+            if(!state.lightBuffer) continue;
+            state.device.queue.writeBuffer(state.lightBuffer, 0, data);
+            break; //zapišemo samo za prvo directional luč
+        }
+    }
 }
 
 /**
@@ -133,4 +170,5 @@ export function updateBuffers(state: RenderState, scene: Scene) {
         _writeTransformBuffer(state, entity);
         _writeSkinBuffer(state, entity);
     }
+    _writeLightBuffer(state, scene); //kličemo za celo sceno
 }

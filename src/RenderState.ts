@@ -36,6 +36,9 @@ export class RenderState {
     unlitRenderer: UnlitRenderer | null = null;
     litRenderer: LitRenderer | null = null;
 
+    // Buffers
+    lightBuffer: GPUBuffer | null = null;
+
 
     constructor(device: GPUDevice, canvas: HTMLCanvasElement) {
         this.device = device;

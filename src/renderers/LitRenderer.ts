@@ -47,6 +47,11 @@ export class LitRenderer {
                 // pove v katerih shaderjih je binfing dostopen - rabili bomo v fragmentih za odboj svetlobe
                 visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                 buffer: { type: 'uniform' }
+            }, 
+            {
+                binding: 1,
+                visibility: GPUShaderStage.FRAGMENT,
+                buffer: { type: 'uniform'}
             }]
         });
 
@@ -200,11 +205,18 @@ export class LitRenderer {
         if (!cameraComponent || !cameraComponent.cameraBuffer) {
             throw Error("Provided entity is not a valid camera!");
         }
+        if (!renderState.lightBuffer) {
+            throw Error("Light buffer not initialized!");
+        }
         this.frameBindGroup = renderState.device.createBindGroup({
             layout: cameraBindGroupLayout,
             entries: [{
                 binding: 0,
                 resource: cameraComponent.cameraBuffer
+            },
+            {
+                binding: 1,
+                resource: renderState.lightBuffer
             }]
         });
 

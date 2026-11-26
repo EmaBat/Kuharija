@@ -37,7 +37,16 @@ struct Material {
     emissive: vec4f,
 }
 
+struct Light {
+    //enako zaporedje kot v bufferju
+    position_type: vec4f, //0-2: position, 3: type
+    dir_range: vec4f, //0-2: direction, 3: range
+    color_int: vec4f, //0-2: color, 3: intensity
+    cosinus: vec4f //0: cosinus(innerConeAngle), 1: cosinus(outerConeAngle), 2-3: prazno
+}
+
 @group(0) @binding(0) var<uniform> camera: Camera;
+@group(0) @binding(1) var<uniform> light: Light;
 @group(1) @binding(0) var<uniform> model: Model;
 @group(2) @binding(0) var<uniform> material: Material;
 @group(2) @binding(1) var baseTexture: texture_2d<f32>;
@@ -92,17 +101,23 @@ fn fragment(input: VertexOutput) -> @location(0) vec4f {
     // vektor proti luči
     let lightPosition = vec3f(-1.0, 1.0, 1.0);
     // smer točke do luči
-    let L = normalize(lightPosition - input.worldPosition);
+    //let L = normalize(lightPosition - input.worldPosition);
+    let L = normalize(-light.dir_range.xyz);
+
     // lastna barva predmeta (kot če bi nanj sijala popolnoma bela svetloba) = barvaTexture * baseColor
-    let barva = textureSample(baseTexture, textureSampler, input.uv) * material.baseColor;
+    let barva_predmet = textureSample(baseTexture, textureSampler, input.uv) * material.baseColor;
+
+    // barva luči
+    let barva_luc = light.color_int.rgb * light.color_int.w;
+
     // geometrija
     let lambert = max(dot(N, L), 0);
     // razpršitev svetlobe
     let diffuse: f32 = lambert * diffuseFactor; 
     let light = diffuse + ambientFactor;
-    let color = barva.rgb * light;
+    let color = barva_predmet.rgb * (light * barva_luc);
 
-    return vec4f(color, barva.a);
+    return vec4f(color, barva_predmet.a);
 
     // return textureSample(baseTexture, textureSampler, input.uv);
     //return textureSample(baseTexture, textureSampler, input.uv) * color;

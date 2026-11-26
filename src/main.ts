@@ -28,8 +28,11 @@ import {
 } from "./systems/FollowCameraSystem.ts";
 
 //dodano za trke
-import { vec3, mat4, vec4} from "gl-matrix";
+import { vec3, mat4, vec4, quat } from "gl-matrix";
 import { Collider } from "./components/Collider.ts";
+
+//dodano za luči
+import { Light, LightType } from "./components/Light.ts"
 
 // ------ Create sample scene ------ //
 const gltfParser = new GLTFParser();
@@ -43,6 +46,27 @@ const scene = await gltfParser.parseScene(0);
 if (!scene) {
     throw Error("Could not get GLTF scene!");
 }
+
+//============ LUČI ============//
+
+//ustvarimo novo luč tipa Directional (sonce)
+const sonce = new Entity();
+sonce.name = "Sonce";
+
+const sonceTransform = new Transform(TransformType.Free);
+sonceTransform.location = vec3.fromValues(1, 5, 0); //rendom pozicija
+//določimo smer v katero luč sveti (rahlo navzdol in naprej)
+sonceTransform.rotation = quat.fromEuler(quat.create(), -45, 45, 0);
+sonce.addComponent(sonceTransform);
+
+const sonceLight = new Light(LightType.Directional);
+sonceLight.color = vec3.fromValues(0.7, 1.0, 0.2);
+//sonceLight.color = vec3.fromValues(255 / 255, 249 / 255, 227 / 255);
+sonceLight.intensity = 1.0;
+sonce.addComponent(sonceLight);
+
+scene.addEntity(sonce);
+console.log(scene.getEntitiesByComponent(Light));
 
 //============ OMARA ============//
 const omaraParser = new GLTFParser();

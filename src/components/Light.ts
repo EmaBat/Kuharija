@@ -5,12 +5,10 @@ import type { Component } from "../Component.ts";
  * Type of punctual light.
  */
 export enum LightType {
-    Point,
-    Directional,
-    Spot
+    Point, //kot sveča - iz ene točke na vse smeri
+    Directional, //kot sonce - iz ene oddaljene točke na celo sceno
+    Spot //kot reflektor - iz ene točke v stožec
 }
-
-
 /**
  * A component representing punctual light:
  * point light, spot light, or directional light (sun).
@@ -19,7 +17,7 @@ export class Light implements Component {
     private _color: vec3 = vec3.fromValues(1.0, 1.0, 1.0);
     private _intensity: number = 1.0;
     private _type: LightType;
-    private _range: number = Number.POSITIVE_INFINITY;  // distance of influence (for point and spot lights)
+    private _range: number = 0;  // distance of influence (for point and spot lights)
 
     private _innerConeAngle: number = 0;                // for spot light
     private _outerConeAngle: number = Math.PI / 4.0;    // for spot light

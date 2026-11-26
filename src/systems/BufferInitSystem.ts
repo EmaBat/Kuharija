@@ -8,6 +8,9 @@ import { BasicMaterial, LitMaterial, Material } from "../data/Material.ts";
 import { _writeCameraBuffer, _writeMaterialBuffer, _writeMeshBuffers, _writeSkinBuffer, _writeTransformBuffer } from "./BufferUpdateSystem.ts";
 import { Skin } from "../components/Skin.ts";
 
+//za luči
+import { Light } from "../components/Light.ts";
+
 function _createCameraBuffers(state: RenderState, cameraEntity: Entity) {
     const camera = cameraEntity.getComponent(Camera);
     if (!camera) {
@@ -95,6 +98,13 @@ function createMaterialBuffer(state: RenderState, material: Material) {
     }
 }
 
+function createLightBuffer(state: RenderState) {
+    state.lightBuffer = state.device.createBuffer({
+        size: 16 * 4,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
+    });
+}
+
 /**
  * A system that creates all GPU buffers for the scene.
  * The system also writes initial data to the buffers.
@@ -102,6 +112,9 @@ function createMaterialBuffer(state: RenderState, material: Material) {
  * @param scene current scene
  */
 export function createBuffers(state: RenderState, scene: Scene) {
+    // usvtari buffer za luč za celotno sceno
+    createLightBuffer(state);
+
     for (const entity of scene.entities) {
         _createCameraBuffers(state, entity);
         _createTransformBuffers(state, entity);
