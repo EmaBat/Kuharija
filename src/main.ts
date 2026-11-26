@@ -50,7 +50,7 @@ if (!scene) {
 //============ LUČI ============//
 
 //ustvarimo novo luč tipa Directional (sonce)
-const sonce = new Entity();
+/*const sonce = new Entity();
 sonce.name = "Sonce";
 
 const sonceTransform = new Transform(TransformType.Free);
@@ -66,7 +66,7 @@ sonceLight.intensity = 1.0;
 sonce.addComponent(sonceLight);
 
 scene.addEntity(sonce);
-console.log(scene.getEntitiesByComponent(Light));
+console.log(scene.getEntitiesByComponent(Light));*/
 
 //============ OMARA ============//
 const omaraParser = new GLTFParser();
@@ -101,6 +101,43 @@ if (!player) {
 
 player.addComponent(new PlayerController(3));
 
+//======== Test point light =======//
+/*const point = new Entity();
+point.name = "Point";
+
+const pointTransform = new Transform(TransformType.Free);
+pointTransform.location = vec3.fromValues(0.5, 1.0, 1.0); //rendom pozicija
+//določimo smer v katero luč sveti (rahlo navzdol in naprej)
+point.addComponent(pointTransform);
+
+const pointLight = new Light(LightType.Point);
+pointLight.color = vec3.fromValues(0.7, 1.0, 0.2);
+pointLight.intensity = 3.0;
+point.addComponent(pointLight);
+
+point.parent = player;
+scene.addEntity(point);
+console.log(scene.getEntitiesByComponent(Light));*/
+
+//======== Test spot light =======//
+const point = new Entity();
+point.name = "Spot";
+
+const pointTransform = new Transform(TransformType.Free);
+pointTransform.location = vec3.fromValues(0.5, 1.0, 1.0); //rendom pozicija
+//določimo smer v katero luč sveti (rahlo navzdol in naprej)
+point.addComponent(pointTransform);
+
+const pointLight = new Light(LightType.Spot);
+pointLight.color = vec3.fromValues(0.7, 1.0, 0.2);
+pointLight.intensity = 3.0;
+pointLight.outerConeAngle = Math.PI / 8.0;
+point.addComponent(pointLight);
+
+point.parent = player;
+scene.addEntity(point);
+console.log(scene.getEntitiesByComponent(Light));
+
 //ODSTRANIMO STARO KOCKO
 const cube = scene.getEntityByName("Cube");
 if(cube){
@@ -127,11 +164,16 @@ for (const entity of omaraScene.entities) {
                 if (entity.name === "Cube") {
                     // Rjava omara
                     const barva = vec4.fromValues(0.45, 0.25, 0.12, 1);
-                    mesh.setPrimitiveByMaterial(primitive, new LitMaterial(await createTempTexture(), barva));
+                    const bela = vec4.fromValues(1, 1, 1, 1);
+                    const material =new LitMaterial(await createTempTexture(bela), barva);
+                    material.specular = 1.0;
+                    material.shininess = 32;
+                    mesh.setPrimitiveByMaterial(primitive, material);
                 }else if(entity.name === "objekti"){
                     // Svetlo rumeni predmeti
                     const barva = vec4.fromValues(1, 0.85, 0.3, 1);
-                    mesh.setPrimitiveByMaterial(primitive, new LitMaterial(await createTempTexture(), barva));
+                    const bela = vec4.fromValues(1, 1, 1, 1);
+                    mesh.setPrimitiveByMaterial(primitive, new LitMaterial(await createTempTexture(bela), barva));
                 }
             }
         }

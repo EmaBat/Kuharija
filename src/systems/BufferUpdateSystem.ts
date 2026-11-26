@@ -27,6 +27,7 @@ export function _writeCameraBuffer(state: RenderState, entity: Entity) {
     if (camera.cameraBuffer) {
         state.device.queue.writeBuffer(camera.cameraBuffer, 0, viewMatrix);
         state.device.queue.writeBuffer(camera.cameraBuffer, 64, camera.perspectiveProjection);
+        state.device.queue.writeBuffer(camera.cameraBuffer, 128, transform.location);
     } else {
         console.warn("Camera buffer was not initialized! Ignoring...");
     }
@@ -132,26 +133,24 @@ export function _writeLightBuffer(state: RenderState, scene: Scene) {
     for(const entity of lights) {
         const light = entity.getComponent(Light);
         if(!light) continue;
+        if (entity.name !== "Spot0") continue;
+        const transform = entity.getComponent(Transform);
+        if (!transform) continue;
+        const position = mat4.getTranslation(vec3.create(), transform.worldMatrix);
+        let dir4 = vec4.transformMat4(vec4.create(), vec4.fromValues(0, 0, -1, 0), transform.worldMatrix);
+        const dir = vec3.fromValues(dir4[0], dir4[1], dir4[2]);
+        vec3.normalize(dir, dir);
 
-        if (light.type == LightType.Directional) {
-            const transform = entity.getComponent(Transform);
-            if (!transform) continue;
-            const position = mat4.getTranslation(vec3.create(), transform.worldMatrix);
-            let dir4 = vec4.transformMat4(vec4.create(), vec4.fromValues(0, 0, -1, 0), transform.worldMatrix);
-            const dir = vec3.fromValues(dir4[0], dir4[1], dir4[2]);
-            vec3.normalize(dir, dir);
-        
-            const data = new Float32Array(16);
-            // pozicija, tip - tipe zapišemo s številom kot si sledijo po vrsti v enum LightType (Directional - 1)
-            data.set([position[0], position[1], position[2], 1], 0);
-            data.set([dir[0], dir[1], dir[2], light.range], 4);
-            data.set([light.color[0], light.color[1], light.color[2], light.intensity], 8);
-            data.set([Math.cos(light.innerConeAngle), Math.cos(light.outerConeAngle)], 12);
+        const data = new Float32Array(16);
+        // pozicija, tip - tipe zapišemo s številom kot si sledijo po vrsti v enum LightType (Directional - 1)
+        data.set([position[0], position[1], position[2], light.type], 0);
+        data.set([dir[0], dir[1], dir[2], light.range], 4);
+        data.set([light.color[0], light.color[1], light.color[2], light.intensity], 8);
+        data.set([Math.cos(light.innerConeAngle), Math.cos(light.outerConeAngle)], 12);
 
-            if(!state.lightBuffer) continue;
-            state.device.queue.writeBuffer(state.lightBuffer, 0, data);
-            break; //zapišemo samo za prvo directional luč
-        }
+        if(!state.lightBuffer) continue;
+        state.device.queue.writeBuffer(state.lightBuffer, 0, data);
+        break; //zapišemo samo za prvo directional luč
     }
 }
 

@@ -38,7 +38,7 @@ export class LitMaterial extends Material {
     // kako močan je odsev - bolj plastične in kovinske površine imajo večjo številko
     specular: number = 0.0;
     // kako oster in velik je odsev - gladke površine imajo večje in močnejše odzeve
-    shinines: number = 32;
+    shininess: number = 32;
     // koliko osnovne svetlobe (ambientne svetlobe) ostane v senci
     ambient: number = 0.5;
     // koliko barvne svetlobe oddaja predmet sam - recimo kristali ki "žarijo"

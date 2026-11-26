@@ -18,8 +18,9 @@ function _createCameraBuffers(state: RenderState, cameraEntity: Entity) {
     }
 
     let projectionViewMatricesSize = 2 * 16 * 4;
+    let locationSize = 4 * 4;
     camera.cameraBuffer = state.device.createBuffer({
-        size: projectionViewMatricesSize,
+        size: projectionViewMatricesSize + locationSize,
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
     });
 }

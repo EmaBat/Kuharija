@@ -5,9 +5,9 @@ import type { Component } from "../Component.ts";
  * Type of punctual light.
  */
 export enum LightType {
-    Point, //kot sveča - iz ene točke na vse smeri
-    Directional, //kot sonce - iz ene oddaljene točke na celo sceno
-    Spot //kot reflektor - iz ene točke v stožec
+    Point = 0, //kot sveča - iz ene točke na vse smeri
+    Directional = 1, //kot sonce - iz ene oddaljene točke na celo sceno
+    Spot = 2, //kot reflektor - iz ene točke v stožec
 }
 /**
  * A component representing punctual light:
