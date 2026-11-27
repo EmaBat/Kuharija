@@ -418,6 +418,24 @@ function izprazniVelikInventar(){
     }
 }
 
+// SPOROČILO
+const sporocilo = document.createElement("div");
+sporocilo.className = "sporocilo";
+sporocilo.style.display = "none";   // na začetku skrito
+document.body.appendChild(sporocilo);
+
+let sporociloTimer: number | undefined;
+
+function prikaziSporocilo(besedilo: string, trajanje = 2000) {
+    sporocilo.textContent = besedilo;
+    sporocilo.style.display = "block";
+
+    clearTimeout(sporociloTimer);                 // če je prejšnje še vidno, začni odštevati znova
+    sporociloTimer = setTimeout(() => {
+        sporocilo.style.display = "none";
+    }, trajanje);
+}
+
 // ------ Start game loop ------ //
 
 //definicija matrike predmetov v omari, trenutno 4x4:
@@ -615,7 +633,9 @@ function update(timestamp: number) {
                     if(!sestavine.includes(ime)){
                         sestavine.push(ime); //nocemo da se sestavine podvajajo
                         posodobiSeznam(ime);
-                    } 
+                    } else {
+                        prikaziSporocilo("Ta predmet je že izbran!"); //vrži sporočilo
+                    }
 
                     // Stevilka polja od 0 do 15
                     const slot = vrstica * 3 + stolpec; //izracun pravilne celice grida
