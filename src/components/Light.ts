@@ -1,6 +1,9 @@
 import { vec3 } from "gl-matrix";
 import type { Component } from "../Component.ts";
 
+// največje število luči
+export const MAX_LIGHTS = 8;
+
 /**
  * Type of punctual light.
  */

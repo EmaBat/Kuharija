@@ -9,7 +9,7 @@ import { _writeCameraBuffer, _writeMaterialBuffer, _writeMeshBuffers, _writeSkin
 import { Skin } from "../components/Skin.ts";
 
 //za luči
-import { Light } from "../components/Light.ts";
+import { MAX_LIGHTS } from "../components/Light.ts";
 
 function _createCameraBuffers(state: RenderState, cameraEntity: Entity) {
     const camera = cameraEntity.getComponent(Camera);
@@ -100,8 +100,12 @@ function createMaterialBuffer(state: RenderState, material: Material) {
 }
 
 function createLightBuffer(state: RenderState) {
+    // vsaka luč zasede 64B, 
+    // 16 dodatnih B za glavo - število luči (ki je sicer samo 4B, ampak uniform zahteva poravnavo)
+    const bufferSize = MAX_LIGHTS * 64 + 16;
+
     state.lightBuffer = state.device.createBuffer({
-        size: 16 * 4,
+        size: bufferSize,
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
     });
 }

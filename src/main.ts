@@ -49,8 +49,11 @@ if (!scene) {
 
 //============ LUČI ============//
 
+const blenderLight = scene.getEntityByName("PointLight")?.getComponent(Light);
+if (blenderLight) blenderLight.intensity = 1.0;   // ali 0 za test
+
 //ustvarimo novo luč tipa Directional (sonce)
-/*const sonce = new Entity();
+const sonce = new Entity();
 sonce.name = "Sonce";
 
 const sonceTransform = new Transform(TransformType.Free);
@@ -66,7 +69,7 @@ sonceLight.intensity = 1.0;
 sonce.addComponent(sonceLight);
 
 scene.addEntity(sonce);
-console.log(scene.getEntitiesByComponent(Light));*/
+console.log(scene.getEntitiesByComponent(Light));
 
 //============ OMARA ============//
 const omaraParser = new GLTFParser();
@@ -102,7 +105,7 @@ if (!player) {
 player.addComponent(new PlayerController(3));
 
 //======== Test point light =======//
-/*const point = new Entity();
+const point = new Entity();
 point.name = "Point";
 
 const pointTransform = new Transform(TransformType.Free);
@@ -111,32 +114,32 @@ pointTransform.location = vec3.fromValues(0.5, 1.0, 1.0); //rendom pozicija
 point.addComponent(pointTransform);
 
 const pointLight = new Light(LightType.Point);
-pointLight.color = vec3.fromValues(0.7, 1.0, 0.2);
-pointLight.intensity = 3.0;
-point.addComponent(pointLight);
-
-point.parent = player;
-scene.addEntity(point);
-console.log(scene.getEntitiesByComponent(Light));*/
-
-//======== Test spot light =======//
-const point = new Entity();
-point.name = "Spot";
-
-const pointTransform = new Transform(TransformType.Free);
-pointTransform.location = vec3.fromValues(0.5, 1.0, 1.0); //rendom pozicija
-//določimo smer v katero luč sveti (rahlo navzdol in naprej)
-point.addComponent(pointTransform);
-
-const pointLight = new Light(LightType.Spot);
-pointLight.color = vec3.fromValues(0.7, 1.0, 0.2);
-pointLight.intensity = 3.0;
-pointLight.outerConeAngle = Math.PI / 8.0;
+pointLight.color = vec3.fromValues(0.7, 0.2, 0.2);
+pointLight.intensity = 5.0;
 point.addComponent(pointLight);
 
 point.parent = player;
 scene.addEntity(point);
 console.log(scene.getEntitiesByComponent(Light));
+
+//======== Test spot light =======//
+/*const spot = new Entity();
+spot.name = "Spot";
+
+const spotTransform = new Transform(TransformType.Free);
+spotTransform.location = vec3.fromValues(0.5, 1.0, 1.0); //rendom pozicija
+//določimo smer v katero luč sveti (rahlo navzdol in naprej)
+spot.addComponent(spotTransform);
+
+const spotLight = new Light(LightType.Spot);
+spotLight.color = vec3.fromValues(0.2, 1.0, 0.2);
+spotLight.intensity = 1.0;
+spotLight.outerConeAngle = Math.PI / 8.0;
+spot.addComponent(spotLight);
+
+//spot.parent = player;
+scene.addEntity(spot);
+console.log(scene.getEntitiesByComponent(Light));*/
 
 //ODSTRANIMO STARO KOCKO
 const cube = scene.getEntityByName("Cube");

@@ -8,7 +8,7 @@ import { BasicMaterial, LitMaterial } from "../data/Material.ts";
 import { Skin } from "../components/Skin.ts";
 
 //za luči
-import { Light, LightType } from "../components/Light.ts";
+import { Light, LightType, MAX_LIGHTS } from "../components/Light.ts";
 import { vec3, vec4, mat4 } from "gl-matrix";
 
 export function _writeCameraBuffer(state: RenderState, entity: Entity) {
@@ -125,33 +125,36 @@ export function _writeMaterialBuffer(state: RenderState, entity: Entity) {
 
 // buffer za luči
 export function _writeLightBuffer(state: RenderState, scene: Scene) {
-    const lights = scene.getEntitiesByComponent(Light);
-    if (lights.length == 0) {
-        return;
-    }
+    if(!state.lightBuffer) return;
 
+    const lights = scene.getEntitiesByComponent(Light);
+    
+    let count = 0;
+    const data = new Float32Array(4 + MAX_LIGHTS * 16);
     for(const entity of lights) {
         const light = entity.getComponent(Light);
         if(!light) continue;
-        if (entity.name !== "Spot0") continue;
         const transform = entity.getComponent(Transform);
         if (!transform) continue;
+
         const position = mat4.getTranslation(vec3.create(), transform.worldMatrix);
-        let dir4 = vec4.transformMat4(vec4.create(), vec4.fromValues(0, 0, -1, 0), transform.worldMatrix);
+        const dir4 = vec4.transformMat4(vec4.create(), vec4.fromValues(0, 0, -1, 0), transform.worldMatrix);
         const dir = vec3.fromValues(dir4[0], dir4[1], dir4[2]);
         vec3.normalize(dir, dir);
 
-        const data = new Float32Array(16);
+        const offset = 4 + count * 16;
         // pozicija, tip - tipe zapišemo s številom kot si sledijo po vrsti v enum LightType (Directional - 1)
-        data.set([position[0], position[1], position[2], light.type], 0);
-        data.set([dir[0], dir[1], dir[2], light.range], 4);
-        data.set([light.color[0], light.color[1], light.color[2], light.intensity], 8);
-        data.set([Math.cos(light.innerConeAngle), Math.cos(light.outerConeAngle)], 12);
-
-        if(!state.lightBuffer) continue;
-        state.device.queue.writeBuffer(state.lightBuffer, 0, data);
-        break; //zapišemo samo za prvo directional luč
+        data.set([position[0], position[1], position[2], light.type], offset);
+        data.set([dir[0], dir[1], dir[2], light.range], offset + 4);
+        data.set([light.color[0], light.color[1], light.color[2], light.intensity], offset + 8);
+        data.set([Math.cos(light.innerConeAngle), Math.cos(light.outerConeAngle)], offset + 12);
+        
+        count++;
+        if (count >= MAX_LIGHTS) break;
     }
+    data[0] = count;
+
+    state.device.queue.writeBuffer(state.lightBuffer, 0, data);
 }
 
 /**

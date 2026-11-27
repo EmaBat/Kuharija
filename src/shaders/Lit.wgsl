@@ -46,8 +46,13 @@ struct Light {
     cosinus: vec4f //0: cosinus(innerConeAngle), 1: cosinus(outerConeAngle), 2-3: prazno
 }
 
+struct Lights {
+    count: vec4f,
+    lights: array<Light, 8>
+}
+
 @group(0) @binding(0) var<uniform> camera: Camera;
-@group(0) @binding(1) var<uniform> light: Light;
+@group(0) @binding(1) var<uniform> lights: Lights;
 @group(1) @binding(0) var<uniform> model: Model;
 @group(2) @binding(0) var<uniform> material: Material;
 @group(2) @binding(1) var baseTexture: texture_2d<f32>;
@@ -91,83 +96,88 @@ fn vertexSkinned(input: SkinnedVertexInput) -> VertexOutput {
 
 @fragment
 fn fragment(input: VertexOutput) -> @location(0) vec4f {
-    // --------------- tip luči  ----------------//
-    const LIGHT_POINT = 0;
-    const LIGHT_DIRECTIONAL = 1;
-    const LIGHT_SPOT = 2;
+    // --------------------------- tip luči  --------------------------//
+    const LIGHT_POINT = 0.0;
+    const LIGHT_DIRECTIONAL = 1.0;
+    const LIGHT_SPOT = 2.0;
 
-    // ---------- parametri materiala -----------//
+    // --------------------- parametri materiala ---------------------//
     let diffuseFactor  = material.params.x; //kd
     let specularFactor = material.params.y; 
     let shininess      = material.params.z; //p
     let ambientFactor  = material.params.w;
 
-    // --------- parametri osvetlitve -----------//
+    // --------- parametri osvetlitve - neodvisni od luči -----------//
+
     //normirana normala na površino
     let N = normalize(input.normal);
-
-    // normairana smer svetlobe
-    let toLight = light.position_type.xyz - input.worldPosition;
-    let distance2 = dot(toLight, toLight);
-    let distance = sqrt(distance2);
-    var L = vec3f(0.0, 0.0, 0.0);
-
-    // barva luči = barva * intenziteta
-    var cL = light.color_int.rgb * light.color_int.w;
-
-    // za point in spot
-    var funkcija = 0.0;
-    var pomnozi = 0.0;
-    var f = 1.0;
-
-    if(light.position_type.w == LIGHT_POINT) {
-        L = normalize(toLight);
-        funkcija = 1.0 / (1.0 + distance2);
-        if(light.dir_range.w > 0 && distance > light.dir_range.w){
-           funkcija = 0.0;
-        }
-        cL = cL * funkcija;
-    } else if (light.position_type.w == LIGHT_DIRECTIONAL){
-        L = normalize(-light.dir_range.xyz);
-    } else {
-        L = normalize(toLight);
-        let ld = dot(-L, light.dir_range.xyz);
-        if(ld > light.cosinus.y){
-            pomnozi = pow(ld, f);
-        }
-        cL = cL * pomnozi;
-    }
-
-    // normirana smer idealnega odboja svetlobe
-    let R = 2 * max(dot(N, L), 0) * N - L;
-
     // normirana smer pogleda
     let V = normalize(camera.position.xyz - input.worldPosition);
-
     // lastna barva predmeta (kot če bi nanj sijala popolnoma bela svetloba) = barvaTexture * baseColor
     let albedo = textureSample(baseTexture, textureSampler, input.uv) * material.baseColor;
-
     // barva odboja - zaenkrat določena tukaj ročno, potem dodamo v Material.ts
     let cO = vec3f(0.5, 0.5, 0.5);
-
     // barva ambientne svetlobe - zaenkrat določena tukaj ročno, potem dodamo v lightBuffer
     let cA = vec3f(0.6, 0.7, 0.9);
 
-    // ------------- osvetlitev  -------------//
-    // razpršitev svetlobe = cl * kd * (n * l)
-    let diffuse = cL * diffuseFactor * albedo.rgb * max(dot(N, L), 0);
 
-    // zrcalni odboj = cl * ks * (r * v)^p
-    let specular = cL * cO * specularFactor * pow(max(dot(R, V), 0), shininess);
+    // skupni parametri za vse luči
+    var diffuseSum = vec3f(0.0);
+    var specularSum = vec3f(0.0);
+
+    // ---------- parametri osvetlitve - odvisni od luči ------------//
+    for (var i = 0u; i < u32(lights.count.x); i++){
+        let light = lights.lights[i];
+
+        // normairana smer svetlobe
+        let toLight = light.position_type.xyz - input.worldPosition;
+        let distance2 = dot(toLight, toLight);
+        let distance = sqrt(distance2);
+        var L = vec3f(0.0, 0.0, 0.0);
+        
+        // barva luči = barva * intenziteta
+        var cL = light.color_int.rgb * light.color_int.w;
+
+        // za point in spot
+        var funkcija = 0.0;
+        var pomnozi = 0.0;
+        var f = 1.0;
+        if(light.position_type.w == LIGHT_POINT) {
+            L = normalize(toLight);
+            funkcija = 1.0 / (1.0 + distance2);
+            if(light.dir_range.w > 0 && distance > light.dir_range.w){
+                funkcija = 0.0;
+            }
+            cL = cL * funkcija;
+        } else if (light.position_type.w == LIGHT_DIRECTIONAL){
+            L = normalize(-light.dir_range.xyz);
+        } else {
+            L = normalize(toLight);
+            let ld = dot(-L, light.dir_range.xyz);
+            if(ld > light.cosinus.y){
+                pomnozi = pow(ld, f);
+            }
+            cL = cL * pomnozi;
+        }
+
+        // normirana smer idealnega odboja svetlobe
+        let R = 2 * max(dot(N, L), 0) * N - L;
+        
+        // razpršitev svetlobe = cl * kd * (n * l)
+        diffuseSum += cL * diffuseFactor * albedo.rgb * max(dot(N, L), 0);
+
+        // zrcalni odboj = cl * ks * (r * v)^p
+        specularSum += cL * cO * specularFactor * pow(max(dot(R, V), 0), shininess);
+
+    }
+
+    // ------------------------ osvetlitev  --------------------------//
 
     // ambientna osvetlitev = ca * ka
     let ambient = albedo.rgb * cA * ambientFactor;
 
     // končna barva
-    let color = ambient + diffuse + specular;
+    let color = ambient + diffuseSum + specularSum;
 
     return vec4f(color, albedo.a);
-
-    // return textureSample(baseTexture, textureSampler, input.uv);
-    //return textureSample(baseTexture, textureSampler, input.uv) * color;
 }
