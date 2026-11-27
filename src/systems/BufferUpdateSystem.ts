@@ -134,6 +134,9 @@ export function _writeLightBuffer(state: RenderState, scene: Scene) {
     for(const entity of lights) {
         const light = entity.getComponent(Light);
         if(!light) continue;
+        
+        if (!light.enabled) continue; //neprižgane luči "preskoči"
+
         const transform = entity.getComponent(Transform);
         if (!transform) continue;
 

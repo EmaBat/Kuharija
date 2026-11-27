@@ -66,6 +66,7 @@ const sonceLight = new Light(LightType.Directional);
 sonceLight.color = vec3.fromValues(0.7, 1.0, 0.2);
 //sonceLight.color = vec3.fromValues(255 / 255, 249 / 255, 227 / 255);
 sonceLight.intensity = 1.0;
+sonceLight.enabled = true;
 sonce.addComponent(sonceLight);
 
 scene.addEntity(sonce);
@@ -105,7 +106,7 @@ if (!player) {
 player.addComponent(new PlayerController(3));
 
 //======== Test point light =======//
-const point = new Entity();
+/*const point = new Entity();
 point.name = "Point";
 
 const pointTransform = new Transform(TransformType.Free);
@@ -120,7 +121,7 @@ point.addComponent(pointLight);
 
 point.parent = player;
 scene.addEntity(point);
-console.log(scene.getEntitiesByComponent(Light));
+console.log(scene.getEntitiesByComponent(Light));*/
 
 //======== Test spot light =======//
 /*const spot = new Entity();
@@ -166,7 +167,7 @@ for (const entity of omaraScene.entities) {
             for (const primitive of primitives) {
                 if (entity.name === "Cube") {
                     // Rjava omara
-                    const barva = vec4.fromValues(0.45, 0.25, 0.12, 1);
+                    const barva = vec4.fromValues(0.17, 0.05, 0.01, 1);
                     const bela = vec4.fromValues(1, 1, 1, 1);
                     const material =new LitMaterial(await createTempTexture(bela), barva);
                     material.specular = 1.0;
@@ -174,9 +175,10 @@ for (const entity of omaraScene.entities) {
                     mesh.setPrimitiveByMaterial(primitive, material);
                 }else if(entity.name === "objekti"){
                     // Svetlo rumeni predmeti
-                    const barva = vec4.fromValues(1, 0.85, 0.3, 1);
+                    const barva = vec4.fromValues(1, 0.79, 0.32, 1);
                     const bela = vec4.fromValues(1, 1, 1, 1);
-                    mesh.setPrimitiveByMaterial(primitive, new LitMaterial(await createTempTexture(bela), barva));
+                    const material = new LitMaterial(await createTempTexture(bela), barva)
+                    mesh.setPrimitiveByMaterial(primitive, material);
                 }
             }
         }
@@ -189,6 +191,34 @@ omaraEntity.addComponent(new Collider(
     vec3.fromValues(-0.75, 0, -0.2155),
     vec3.fromValues(0.75, 1.5, 0.2155)
 ));
+
+//========= SPOTLIGHT - OMARA =========//
+const omaraSpot = new Entity();
+omaraSpot.name = "OmaraSpot";
+
+const omaraSpotTransform = new Transform(TransformType.Free);
+
+const pozicija = vec3.fromValues(0, 2.5, 1.5); //pred omaro
+// izračun usmeritve luči (v omaro)
+const cilj = vec3.fromValues(0, 0.75, 0.2155); //sredina sprednje ploskve omare
+const m = mat4.targetTo(mat4.create(), pozicija, cilj, vec3.fromValues(0, 1, 0)); //out, oko, cilj, gor
+
+omaraSpotTransform.location = pozicija;
+omaraSpotTransform.rotation = mat4.getRotation(quat.create(), m);
+
+//določimo smer v katero luč sveti (rahlo navzdol in naprej)
+omaraSpot.addComponent(omaraSpotTransform);
+
+const omaraSpotLight = new Light(LightType.Spot);
+omaraSpotLight.color = vec3.fromValues(1.0, 0.9, 0.6);
+omaraSpotLight.intensity = 5.0;
+omaraSpotLight.innerConeAngle = 0.3;
+omaraSpotLight.outerConeAngle = 0.45;
+omaraSpot.addComponent(omaraSpotLight);
+
+omaraSpot.parent = omaraEntity;
+scene.addEntity(omaraSpot);
+console.log(scene.getEntitiesByComponent(Light));
 
 //izracun oddaljenosti igralca od kocke
 const playerTransform = player.getComponent(Transform);
@@ -432,7 +462,6 @@ function update(timestamp: number) {
         const playerPosition = vec3.create();
         const cubePosition = vec3.create();
 
-
         mat4.getTranslation(playerPosition, playerTransform.worldMatrix);
         mat4.getTranslation(cubePosition, cubeTransform.worldMatrix);
     
@@ -443,6 +472,7 @@ function update(timestamp: number) {
         if(gameMode === GameMode.NORMAL){
             if(distance < 1.5){ //men se zdi 1.5 kr okej
                 gameMode = GameMode.INTERACTION;
+                omaraSpotLight.enabled = true;
                 console.log("Vstop v INTERACTION!");
                 cameraTransform.transformType = TransformType.LookAt; //"kamero zelimo usmeriti proti doloceni tocki"
                 //                                                  kamera:       gor/dol             blizu/dalec
@@ -455,6 +485,7 @@ function update(timestamp: number) {
             }
         }else{
             gameMode = GameMode.NORMAL;
+            omaraSpotLight.enabled = false;
             console.log("vrnitev v NORMAL!");
         }
     }

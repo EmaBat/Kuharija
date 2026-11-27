@@ -518,7 +518,7 @@ export class GLTFParser {
 
         if (!this.data.materials) {
             console.warn("No materials found in GLTF");
-            return new BasicMaterial(bitmap, vec4.fromValues(1, 1, 1, 1));
+            return new LitMaterial(bitmap, vec4.fromValues(1, 1, 1, 1));
         }
 
         const materialSpec = this.data.materials[index];
@@ -526,7 +526,7 @@ export class GLTFParser {
             return this.materials.get(materialSpec)!;
         }
         
-        const material = new BasicMaterial(bitmap, vec4.fromValues(1, 1, 1, 1));
+        const material = new LitMaterial(bitmap, vec4.fromValues(1, 1, 1, 1));
         const pbrSpec = materialSpec.pbrMetallicRoughness;
         if (pbrSpec) {
             if (pbrSpec.baseColorFactor ) {
@@ -535,6 +535,11 @@ export class GLTFParser {
             }
             if (pbrSpec.baseColorTexture) {
                 material.baseTexture = await this.parseTexture(pbrSpec.baseColorTexture.index);
+            }
+            if (pbrSpec.roughnessFactor !== undefined) {
+                const r = pbrSpec.roughnessFactor;
+                material.specular = 1 - r;
+                material.shininess = 2 / Math.pow(r, 4) - 2;
             }
         }
 

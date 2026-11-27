@@ -22,6 +22,7 @@ export class RenderState {
     canvas: HTMLCanvasElement;
     context: GPUCanvasContext;
     canvasFormat: GPUTextureFormat;
+    canvasViewFormat: GPUTextureFormat;
 
     // Textures
 
@@ -53,9 +54,11 @@ export class RenderState {
 
         this.context = context;
         this.canvasFormat = navigator.gpu.getPreferredCanvasFormat();
+        this.canvasViewFormat = (this.canvasFormat + '-srgb') as GPUTextureFormat;
         this.context.configure({
             device: this.device,
-            format: this.canvasFormat
+            format: this.canvasFormat,
+            viewFormats: [this.canvasViewFormat]
         });
 
         // Initialize textures
@@ -132,7 +135,8 @@ export class RenderState {
 
         this.context.configure({
             device: this.device,
-            format: this.canvasFormat
+            format: this.canvasFormat,
+            viewFormats: [this.canvasViewFormat]
         });
     }
 }

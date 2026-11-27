@@ -25,6 +25,8 @@ export class Light implements Component {
     private _innerConeAngle: number = 0;                // for spot light
     private _outerConeAngle: number = Math.PI / 4.0;    // for spot light
 
+    enabled = false; // za omogočanje prižiga in ugašanja luči
+
     constructor(type: LightType) {
         this._type = type;
     }

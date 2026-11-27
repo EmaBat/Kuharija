@@ -161,13 +161,15 @@ fn fragment(input: VertexOutput) -> @location(0) vec4f {
         }
 
         // normirana smer idealnega odboja svetlobe
-        let R = 2 * max(dot(N, L), 0) * N - L;
+        let R = reflect(-L, N);
         
         // razpršitev svetlobe = cl * kd * (n * l)
         diffuseSum += cL * diffuseFactor * albedo.rgb * max(dot(N, L), 0);
 
         // zrcalni odboj = cl * ks * (r * v)^p
-        specularSum += cL * cO * specularFactor * pow(max(dot(R, V), 0), shininess);
+        if(dot(N, L) > 0) {
+            specularSum += cL * cO * specularFactor * pow(max(dot(R, V), 0), shininess);
+        }
 
     }
 
@@ -176,8 +178,9 @@ fn fragment(input: VertexOutput) -> @location(0) vec4f {
     // ambientna osvetlitev = ca * ka
     let ambient = albedo.rgb * cA * ambientFactor;
 
+    let emissive = material.emissive.rgb;
     // končna barva
-    let color = ambient + diffuseSum + specularSum;
+    let color = ambient + diffuseSum + specularSum + emissive;
 
     return vec4f(color, albedo.a);
 }
