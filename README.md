@@ -245,3 +245,23 @@ Kako sem to naredila:
 1. v input.ts sem dodala logiko zaznavanja koordinat miske, zato ker zelim da zaznamo klik miske samo znotraj canvasa, sem dodala tudi to, iz main se posle Input.ts kjer ga v konstruktorju "ujamemo".
 2. zarak (ray) potuje od kamere skozi mesto klika v 3D prostor, opisemo ga kot: P(t)=O+t*D, O=izhodisce zarka/kamera, D=smer zarka, t>=0 razdalja vzdolz zarka ce je D normaliziran, P(t)=tocka na zarku. Vse sm razlozila v enem notebooku na tablici, bejsikli nardimo vektor od kamere do far plane (z=1), nato to pretvarjamo dokler ne dobimo vse tocke v local koordinatah kocke (police) in nato izracunamo ce smo kliknili na kocko in kam.
 3. omara ki sm jo importala je narejena iz dveh delou, omare in predmetov v njej, zaenkrat sm ju pobarvala razlicne barve tok da se vidi ker se nimamo senc. 
+
+# NAVODILA ZA UPORABO LUČI
+
+## 1. Ustvarjanje luči
+Luč ustvarimo kot nov entity (z `new Entity()`) in ji dodamo dve komponenti: `Transform`, kjer je bistveno, da nastavimo lokacijo luči (ostalo nima velikega pomena) in `Light`, kjer **NUJNO** nastavimo tip luči. 
+Na izbiro imamo tri tipe luči:
+* `Point` - deluje kot sveča ali žarnica (vse okoli sebe osvetljuje enako, z razdaljo osvetlitev pada),
+* `Directional` - deluje kot sonce (oddaljena luč z več vzporednimi žarki),
+* `Spot` - deluje kot reflektor (sveti usmerjeno proti cilju v "stožcu").
+
+Luči privzeto svetijo z belo barvo in intenziteto `1.0`. **Vse luči so privzeto UGASNJENE, zato jih je treba aktivirat z `light.enabled = true`**.
+
+## 2. Druge specifikacije luči
+Zaenkrat je lahko v celotni sceni največ 8 luči.
+
+## 3. Ustvarjanje materialov
+V `Material.ts` se nahaja nov class `LitMaterial`. Vsi objekti, ki se uvozijo iz Blenderja (torej vse kar gre čez `GLFTParser`) so privzeto `LitMaterial`. Ta razred ima veliko več atributov kot `BasicMaterial`, vsi so razloženi v komentarjih. Zaenkrat je pomembno le, da se v `GLFTParser`-ju direktno iz materiala izračunata atributa `shininess` in `specular`. Ko začnemo delati z materiali bolj poglobljeno, bomo lahko tudi to spremenili. 
+
+## 4. Opcija emissive
+Vsak objekt, z materialom tipa `LitMaterial`, lahko "žari". Zaenkrat to pomeni, da lahko zadeva osvetli sama sebe, ko dodamo sence, bo to gledalo bolje.
